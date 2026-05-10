@@ -45,7 +45,7 @@ To run ClawProBench, submit results, or discuss model evaluation for the leaderb
 
 ## 📢 Updates
 
-- `v1.1.4` - Added leaderboard results for Baidu `ERNIE 5.1` and SenseTime `Sensenova 6.7 Flash Lite`. (很高兴看到 ClawProBench 受到越来越多的关注，不过由于 bench 完全开源，无法避免模型厂商刷分现象，接下来很快会推出 ClawProBench 闭源数据集的排行榜，敬请期待。)
+- `v1.1.4` - Added leaderboard results for Baidu `ERNIE 5.1` and SenseTime `Sensenova 6.7 Flash Lite`. (We are glad to see ClawProBench attracting growing attention. Because the benchmark is fully open source, it cannot fully prevent vendors from gaming public scores; a leaderboard based on a closed ClawProBench dataset will be released soon. Stay tuned.)
 - `v1.1.3` - Added OpenAI `gpt-5.5`, `gpt-5.4`, and `gpt-5.3-codex` leaderboard results, which now rank 1-3; also added `DeepSeek-R1` and `kimi-for-coding-k2.6`, and synced the latest live-runtime, custom-check loading, and scenario-grading fixes.
 - `v1.1.2` - Added leaderboard data for `qwen3.5-397b-a17b`, fixed pricing and release-date metadata for several models, and added ModelPK for detailed model-to-model comparison.
 - `v1.1.1` - Added leaderboard results for `kimi-k2.6`; the leaderboard now includes `57` models.
