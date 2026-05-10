@@ -1,3 +1,8 @@
+<p align="right">
+  <a href="README.md"><img alt="English" src="https://img.shields.io/badge/English-default-blue"></a>
+  <a href="README.zh-CN.md"><img alt="中文" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-%E5%88%87%E6%8D%A2-green"></a>
+</p>
+
 <div align="center">
 
 <img src="docs/assets/openclawprobench-logo.svg" width="160" alt="ClawProBench Logo">
