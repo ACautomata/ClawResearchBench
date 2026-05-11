@@ -1,8 +1,3 @@
-<p align="right">
-  <a href="README.md"><img alt="English" src="https://img.shields.io/badge/English-switch-green"></a>
-  <a href="README.zh-CN.md"><img alt="中文" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-%E5%BD%93%E5%89%8D-blue"></a>
-</p>
-
 <div align="center">
 
 <img src="docs/assets/openclawprobench-logo.svg" width="160" alt="ClawProBench Logo">
@@ -19,6 +14,10 @@
 > 102 个活跃场景，162 个目录场景，确定性评分，并原生覆盖 OpenClaw 工作流。
 
 </div>
+
+<p>
+  <a href="README.md"><strong>English README</strong></a>
+</p>
 
 ClawProBench 专注于真实 OpenClaw 执行，提供确定性评分、结构化报告和基准配置选择。默认排名路径是 `core` 配置；更广的活跃覆盖仍可通过 `intelligence`、`coverage`、`native` 和 `full` 使用。
 
