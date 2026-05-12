@@ -49,6 +49,7 @@ ClawProBench 专注于真实 OpenClaw 执行，提供确定性评分、结构化
 
 ## 📢 更新
 
+- `v1.1.5` - 新增 `ring-2.6-1T-xhigh` 的排行榜结果；排行榜现在共有 `65` 个模型。
 - `v1.1.4` - 新增百度 `ERNIE 5.1` 和商汤 `Sensenova 6.7 Flash Lite` 的排行榜结果。（很高兴看到 ClawProBench 受到越来越多的关注。由于 benchmark 完全开源，无法完全避免模型厂商针对公开 benchmark 做定向分数优化；基于 ClawProBench 闭源数据集的排行榜将很快发布。我的代码 benchmark 的开源数据集部分和评估 harness 也预计会在未来 1-2 周内开源，敬请期待。）
 - `v1.1.3` - 新增 OpenAI `gpt-5.5`、`gpt-5.4` 和 `gpt-5.3-codex` 的排行榜结果，当前排名第 1-3；同时新增 `DeepSeek-R1` 和 `kimi-for-coding-k2.6`，并同步最新的真实运行时、自定义检查加载和场景评分修复。
 - `v1.1.2` - 新增 `qwen3.5-397b-a17b` 的排行榜数据，修复多个模型的价格和发布日期元数据，并新增 ModelPK 用于详细模型对比。
