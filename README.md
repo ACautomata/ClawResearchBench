@@ -49,6 +49,8 @@ To run ClawProBench, submit results, or discuss model evaluation for the leaderb
 
 ## 📢 Updates
 
+- `v2.0.0` - Released the closed-dataset leaderboard with `33` model results; added clickable closed-dataset model detail pages, closed-dataset visualization charts, and closed-dataset task browsing in `Tasks`.
+- `v1.1.6` - Added Shanghai AI Lab `intern-s2-preview` to the open-source model leaderboard.
 - `v1.1.5` - Added the `ring-2.6-1T-xhigh` leaderboard result; the leaderboard now includes `65` models.
 - `v1.1.4` - Added leaderboard results for Baidu `ERNIE 5.1` and SenseTime `Sensenova 6.7 Flash Lite`. (We are glad to see ClawProBench attracting growing attention. Because the benchmark is fully open source, it cannot fully avoid vendors optimizing specifically for the public benchmark; a leaderboard based on a closed ClawProBench dataset will be released soon. The open-source dataset portion and evaluation harness for my coding benchmark are also expected to be open-sourced within the next 1-2 weeks. Stay tuned.)
 - `v1.1.3` - Added OpenAI `gpt-5.5`, `gpt-5.4`, and `gpt-5.3-codex` leaderboard results, which now rank 1-3; also added `DeepSeek-R1` and `kimi-for-coding-k2.6`, and synced the latest live-runtime, custom-check loading, and scenario-grading fixes.
