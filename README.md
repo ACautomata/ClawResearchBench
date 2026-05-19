@@ -43,6 +43,7 @@ To run ClawProBench, submit results, or discuss model evaluation for the leaderb
 
 ## Blog
 
+- [ClawProBench Close DataSet LeadBoard Release：ClawProBench Closed Dataset Release and Analysis](https://suyoumo.github.io/bench/blog/2026-05-19-closed-dataset-release-analysis/)
 - [Safety Under Live Agent Work: What the ClawProBench Leaderboard Shows](https://suyoumo.github.io/bench/blog/2026-04-30-model-safety-analysis/)
 - [My Feelings During the Development of ClawProBench](https://suyoumo.github.io/bench/blog/2026-04-02-why-pass3-matters/)
 - [Open-sourcing ClawProBench: Bringing Agent Benchmarks Back to the Real Runtime](https://suyoumo.github.io/bench/blog/2026-04-02-openclawprobench-launch/)
