@@ -41,6 +41,12 @@ ClawProBench 专注于真实 OpenClaw 执行，提供确定性评分、结构化
 
 运行 ClawProBench、提交结果或讨论排行榜模型评测，请联系：xyh920691910@outlook.com。
 
+## LLMLeadBoard
+
+LLMLeadBoard 是与 ClawProBench 同属一个 leaderboard family 的报告来源模型分数榜单。它按模型和推理模式汇总公开模型报告中的 benchmark 分数，方便横向比较不同模型报告中的能力信号。
+
+当前 LLMLeadBoard 包含 `63` 个模型、来自 `55` 份模型报告，囊括 `444` 个 benchmark。榜单支持 benchmark 筛选；当同一模型在同一 benchmark 上来自不同报告且分数不一致时，会在同一个格子中堆叠展示多个分数；同时支持查看同一模型家族在某个 benchmark 上的进步趋势图，以及模型迭代速度图。
+
 ## 博客
 
 - [ClawProBench Close DataSet LeadBoard Release：ClawProBench Closed Dataset Release and Analysis](https://suyoumo.github.io/bench/blog/2026-05-19-closed-dataset-release-analysis/)
@@ -50,6 +56,7 @@ ClawProBench 专注于真实 OpenClaw 执行，提供确定性评分、结构化
 
 ## 📢 更新
 
+- `v2.0.1` - 闭源数据集新增 `Qwen3.7-Max`、`Gemini 3.1 Pro`、`MiniMax-M3` 和 `step-3.7-flash` 的分数；开源数据集新增 `MiniMax-M3` 和 `step-3.7-flash` 的分数；并新增 LLMLeadBoard 介绍区块，用于说明这个基于公开模型报告汇总 benchmark 分数的榜单。
 - `v2.0.0` - 新增闭源榜单，发布 `33` 个模型的闭源数据集结果；支持点击闭源榜单模型查看模型详情，支持闭源榜单可视化图表查看，并支持在 `Tasks` 中查看闭源数据集任务。
 - `v1.1.6` - 开源模型榜单新增上海 AI Lab `intern-s2-preview`。
 - `v1.1.5` - 新增 `ring-2.6-1T-xhigh` 的排行榜结果；排行榜现在共有 `65` 个模型。

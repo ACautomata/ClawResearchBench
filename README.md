@@ -41,6 +41,19 @@ If domestic third-party API gateway providers would like their served models, su
 
 To run ClawProBench, submit results, or discuss model evaluation for the leaderboard, contact: xyh920691910@outlook.com.
 
+## LLMLeadBoard
+
+LLMLeadBoard is the report-sourced model-score board in the same leaderboard
+family as ClawProBench. It aggregates benchmark scores by model and inference
+mode from public model reports, making it easier to compare reported capability
+signals across benchmark families.
+
+The current LLMLeadBoard covers `63` models, `55` source reports, and `444`
+benchmarks. It supports benchmark filtering, stacked cells when different
+reports give different scores for the same model and benchmark, trend charts for
+benchmark progress within a model family, and iteration-speed charts for model
+release cadence.
+
 ## Blog
 
 - [ClawProBench Close DataSet LeadBoard Release：ClawProBench Closed Dataset Release and Analysis](https://suyoumo.github.io/bench/blog/2026-05-19-closed-dataset-release-analysis/)
@@ -50,6 +63,7 @@ To run ClawProBench, submit results, or discuss model evaluation for the leaderb
 
 ## 📢 Updates
 
+- `v2.0.1` - Added closed-dataset scores for `Qwen3.7-Max`, `Gemini 3.1 Pro`, `MiniMax-M3`, and `step-3.7-flash`; added open-source dataset scores for `MiniMax-M3` and `step-3.7-flash`; and introduced the LLMLeadBoard section for the report-sourced benchmark-score leaderboard.
 - `v2.0.0` - Released the closed-dataset leaderboard with `33` model results; added clickable closed-dataset model detail pages, closed-dataset visualization charts, and closed-dataset task browsing in `Tasks`.
 - `v1.1.6` - Added Shanghai AI Lab `intern-s2-preview` to the open-source model leaderboard.
 - `v1.1.5` - Added the `ring-2.6-1T-xhigh` leaderboard result; the leaderboard now includes `65` models.

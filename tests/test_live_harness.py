@@ -542,6 +542,102 @@ class LiveHarnessTests(unittest.TestCase):
             self.assertEqual(backend["env"]["CODEX_HOME"], str(home_path / ".codex"))
             self.assertNotIn("resumeArgs", backend)
 
+    def test_sync_isolated_model_runtime_seeds_qoder_cli_backend(self) -> None:
+        with tempfile.TemporaryDirectory() as target_dir:
+            target_state_dir = Path(target_dir)
+            target_config_path = target_state_dir / "openclaw.json"
+            target_config_path.write_text(
+                json.dumps(
+                    {
+                        "agents": {
+                            "defaults": {
+                                "model": {"primary": "glm/GLM-5", "fallbacks": []},
+                                "models": {"glm/GLM-5": {}},
+                            },
+                            "list": [{"id": "main"}],
+                        },
+                        "models": {"providers": {}},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            harness = OpenClawLiveHarness(openclaw_state_dir=str(target_state_dir))
+            harness.command_env["PATH"] = "/tmp/qoder-bin"
+
+            with mock.patch("harness.live_harness.shutil.which", return_value="/tmp/qoder-bin/qoderclicn"):
+                harness._sync_isolated_model_runtime("qoder-cli/Qwen3.7-Max")
+
+            updated_config = json.loads(target_config_path.read_text(encoding="utf-8"))
+            defaults = updated_config["agents"]["defaults"]
+            self.assertEqual(defaults["model"], {"primary": "qoder-cli/Qwen3.7-Max", "fallbacks": []})
+            self.assertIn("qoder-cli/Qwen3.7-Max", defaults["models"])
+            backend = defaults["cliBackends"]["qoder-cli"]
+            self.assertEqual(backend["command"], "/tmp/qoder-bin/qoderclicn")
+            self.assertEqual(backend["args"], ["-p", "-o", "json", "--permission-mode", "bypass_permissions"])
+            self.assertEqual(backend["output"], "json")
+            self.assertEqual(backend["modelArg"], "--model")
+            self.assertEqual(backend["modelAliases"]["qwen3.7-max"], "Qwen3.7-Max")
+            self.assertEqual(backend["sessionMode"], "none")
+            self.assertEqual(backend["sessionIdFields"], ["session_id", "uuid"])
+            self.assertFalse(backend["serialize"])
+            self.assertEqual(
+                backend["reliability"]["watchdog"]["fresh"]["noOutputTimeoutRatio"],
+                0.95,
+            )
+
+    def test_sync_isolated_model_runtime_seeds_agy_backend(self) -> None:
+        with tempfile.TemporaryDirectory() as target_dir:
+            target_state_dir = Path(target_dir)
+            target_config_path = target_state_dir / "openclaw.json"
+            target_config_path.write_text(
+                json.dumps(
+                    {
+                        "agents": {
+                            "defaults": {
+                                "model": {"primary": "glm/GLM-5", "fallbacks": []},
+                                "models": {"glm/GLM-5": {}},
+                            },
+                            "list": [{"id": "main"}],
+                        },
+                        "models": {"providers": {}},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            harness = OpenClawLiveHarness(openclaw_state_dir=str(target_state_dir))
+            harness.command_env["PATH"] = "/tmp/agy-bin"
+
+            with mock.patch("harness.live_harness.shutil.which", return_value="/tmp/agy-bin/agy"):
+                harness._sync_isolated_model_runtime("agy/Gemini 3.1 Pro (High)")
+
+            updated_config = json.loads(target_config_path.read_text(encoding="utf-8"))
+            defaults = updated_config["agents"]["defaults"]
+            self.assertEqual(
+                defaults["model"],
+                {"primary": "agy/Gemini 3.1 Pro (High)", "fallbacks": []},
+            )
+            self.assertIn("agy/Gemini 3.1 Pro (High)", defaults["models"])
+            backend = defaults["cliBackends"]["agy"]
+            self.assertEqual(backend["command"], "/tmp/agy-bin/agy")
+            self.assertEqual(
+                backend["args"],
+                ["--dangerously-skip-permissions", "--print-timeout", "40m", "--print"],
+            )
+            self.assertEqual(backend["output"], "text")
+            self.assertNotIn("modelArg", backend)
+            self.assertEqual(backend["sessionMode"], "none")
+            self.assertEqual(
+                backend["sessionIdFields"],
+                ["conversation", "conversation_id", "conversationId"],
+            )
+            self.assertFalse(backend["serialize"])
+            self.assertEqual(
+                backend["reliability"]["watchdog"]["fresh"]["noOutputTimeoutRatio"],
+                0.95,
+            )
+
     def test_sync_isolated_agent_runtime_pins_agent_model_and_disables_fallbacks(self) -> None:
         with tempfile.TemporaryDirectory() as target_dir:
             target_state_dir = Path(target_dir)
@@ -646,6 +742,8 @@ class LiveHarnessTests(unittest.TestCase):
         self.assertEqual(harness._auth_profile_providers_for_model("glm/GLM-5"), {"zai"})
         self.assertEqual(harness._auth_profile_providers_for_model("minimax/MiniMax-M2.7"), {"minimax"})
         self.assertEqual(harness._auth_profile_providers_for_model("codex-cli/gpt-5.5"), set())
+        self.assertEqual(harness._auth_profile_providers_for_model("qoder-cli/Qwen3.7-Max"), set())
+        self.assertEqual(harness._auth_profile_providers_for_model("agy/Gemini 3.1 Pro (High)"), set())
 
     def test_create_agent_copies_minimax_auth_profiles(self) -> None:
         harness = OpenClawLiveHarness()

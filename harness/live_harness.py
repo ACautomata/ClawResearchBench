@@ -1118,6 +1118,65 @@ class OpenClawLiveHarness:
 
     def _cli_backend_config_for_model(self, model: str) -> tuple[str, dict[str, Any]] | None:
         provider = model.split("/", 1)[0].strip().lower()
+        if provider == "agy":
+            command = shutil.which("agy", path=self.command_env.get("PATH")) or "agy"
+            return (
+                provider,
+                {
+                    "command": command,
+                    "args": [
+                        "--dangerously-skip-permissions",
+                        "--print-timeout",
+                        "40m",
+                        "--print",
+                    ],
+                    "output": "text",
+                    "input": "arg",
+                    "sessionMode": "none",
+                    "sessionIdFields": ["conversation", "conversation_id", "conversationId"],
+                    "serialize": False,
+                    "reliability": {
+                        "watchdog": {
+                            "fresh": {
+                                "noOutputTimeoutRatio": 0.95,
+                                "minMs": 180_000,
+                                "maxMs": 2_400_000,
+                            }
+                        }
+                    },
+                },
+            )
+        if provider == "qoder-cli":
+            command = shutil.which("qoderclicn", path=self.command_env.get("PATH")) or "qoderclicn"
+            return (
+                provider,
+                {
+                    "command": command,
+                    "args": [
+                        "-p",
+                        "-o",
+                        "json",
+                        "--permission-mode",
+                        "bypass_permissions",
+                    ],
+                    "output": "json",
+                    "input": "arg",
+                    "modelArg": "--model",
+                    "modelAliases": {"qwen3.7-max": "Qwen3.7-Max"},
+                    "sessionMode": "none",
+                    "sessionIdFields": ["session_id", "uuid"],
+                    "serialize": False,
+                    "reliability": {
+                        "watchdog": {
+                            "fresh": {
+                                "noOutputTimeoutRatio": 0.95,
+                                "minMs": 180_000,
+                                "maxMs": 2_400_000,
+                            }
+                        }
+                    },
+                },
+            )
         if provider != "codex-cli":
             return None
         command = shutil.which("codex", path=self.command_env.get("PATH")) or "codex"
@@ -1373,7 +1432,7 @@ class OpenClawLiveHarness:
         provider = model.split("/", 1)[0].strip().lower()
         if not provider:
             return set()
-        if provider.endswith("-cli"):
+        if provider.endswith("-cli") or provider == "agy":
             return set()
         aliases = {
             "glm": {"zai"},
