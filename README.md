@@ -63,6 +63,7 @@ release cadence.
 
 ## 📢 Updates
 
+- `v2.0.2` - Added `agnes-2.0-flash` results to both the ClawProBench open-source and closed-dataset leaderboards. CodeAgentBench also added results for `GLM-5.2`, `Qwen3.7-Max`, `Qwen3.7-Plus`, `MiniMax-M3`, and `step-3.7-flash`.
 - `v2.0.1` - Added closed-dataset scores for `Qwen3.7-Max`, `Gemini 3.1 Pro`, `MiniMax-M3`, and `step-3.7-flash`; added open-source dataset scores for `MiniMax-M3` and `step-3.7-flash`; and introduced the LLMLeadBoard section for the report-sourced benchmark-score leaderboard.
 - `v2.0.0` - Released the closed-dataset leaderboard with `33` model results; added clickable closed-dataset model detail pages, closed-dataset visualization charts, and closed-dataset task browsing in `Tasks`.
 - `v1.1.6` - Added Shanghai AI Lab `intern-s2-preview` to the open-source model leaderboard.

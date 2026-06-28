@@ -56,6 +56,7 @@ LLMLeadBoard 是与 ClawProBench 同属一个 leaderboard family 的报告来源
 
 ## 📢 更新
 
+- `v2.0.2` - ClawProBench 开源数据集和闭源数据集均新增 `agnes-2.0-flash` 的结果。CodeAgentBench 新增 `GLM-5.2`、`Qwen3.7-Max`、`Qwen3.7-Plus`、`MiniMax-M3` 和 `step-3.7-flash` 的结果。
 - `v2.0.1` - 闭源数据集新增 `Qwen3.7-Max`、`Gemini 3.1 Pro`、`MiniMax-M3` 和 `step-3.7-flash` 的分数；开源数据集新增 `MiniMax-M3` 和 `step-3.7-flash` 的分数；并新增 LLMLeadBoard 介绍区块，用于说明这个基于公开模型报告汇总 benchmark 分数的榜单。
 - `v2.0.0` - 新增闭源榜单，发布 `33` 个模型的闭源数据集结果；支持点击闭源榜单模型查看模型详情，支持闭源榜单可视化图表查看，并支持在 `Tasks` 中查看闭源数据集任务。
 - `v1.1.6` - 开源模型榜单新增上海 AI Lab `intern-s2-preview`。
