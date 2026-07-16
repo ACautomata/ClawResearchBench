@@ -1,0 +1,65 @@
+id: research_idea_generation_ig_001
+name: Evidence-Grounded Cross-Paper Idea Generation
+execution_mode: live
+dimension: synthesis
+difficulty: hard
+benchmark_group: intelligence
+benchmark_status: incubating
+benchmark_core: false
+signal_source: workspace_live
+weight: 1.0
+timeout_seconds: 300
+optimal_steps: 10
+pass_threshold: 0.5
+tags:
+- research
+- idea-generation
+- synthesis
+- closed-world
+prompt: |
+  当前工作区已经放好了以下只读输入文件：
+  - `paper/tinyrec.md`
+  - `paper/sparserec.md`
+
+  请只依据这两篇相关的推荐系统论文，开展一次证据驱动的研究创意任务。
+
+  请在 `idea-runs/ig-001/` 中创建以下 5 个产物：
+  - 创建 `paper-context.md`：提取两篇论文中与研究创意有关的事实和证据
+  - 创建 `paper-context.json`：上述论文上下文的结构化版本
+  - 创建 `paper-analysis.md`：跨论文比较和可组合点分析
+  - 创建 `ideas.dedup.json`：去重后的 idea cards，顶层包含非空的 `ideas` 数组
+  - 创建 `recommended-ideas.md`：最终推荐的研究创意
+
+  每个 idea card 和最终推荐都必须：
+  1. 明确引用 TinyRec 与 SparseRec 中的相关证据
+  2. 指定至少一个要观察的 metric
+  3. 指出至少一个 risk 或 failure mode
+  4. 给出至少一个最小 validation experiment
+
+  不得引入论文中不存在的定量结果或数字。不要修改 `paper/` 中的输入文件。
+tools: []
+expected_tools: []
+ideal_tool_sequence: []
+custom_check: research/idea_generation_ig_001.py
+workspace_seed_dir: ../../datasets/research/idea_generation/ig-001/fixtures
+category: research_idea_generation
+description: Generate structured, evidence-grounded research ideas by synthesizing two synthetic recommender papers.
+objective: Produce five required artifacts whose recommendations cite both papers and include a metric, risk, validation experiment, and no fabricated quantitative claims.
+prerequisites:
+- The workspace is writable.
+- "`paper/tinyrec.md` and `paper/sparserec.md` are present."
+steps:
+- Read both synthetic papers.
+- Extract structured paper context.
+- Compare evidence across the papers.
+- Generate and deduplicate evidence-grounded idea cards.
+- Write the final recommended ideas.
+expected_outcome: Five artifacts under `idea-runs/ig-001/` with structured ideas grounded in both input papers.
+scoring_criteria:
+- All five output artifacts exist.
+- The final recommendations cite both papers and name a metric, risk, and validation experiment.
+- The structured idea cards contain the required fields.
+- Quantitative claims are limited to values present in the source papers.
+fixtures:
+  path: ../../datasets/research/idea_generation/ig-001/fixtures
+time_limit: 300

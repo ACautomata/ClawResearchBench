@@ -1,0 +1,40 @@
+id: research_idea_generate_qa_005
+name: Resource-Constrained Federated Personalization Ideas
+execution_mode: live
+dimension: synthesis
+difficulty: medium
+benchmark_group: intelligence
+benchmark_status: incubating
+benchmark_core: false
+signal_source: workspace_live
+weight: 1.0
+timeout_seconds: 240
+optimal_steps: 4
+pass_threshold: 0.5
+tags: [research, idea-generate, constraint-heavy, closed-world]
+prompt: |
+  当前工作区已经放好了只读输入文件 `materials/task.md`。
+
+  请只依据该材料生成适合当前数据、计算、代码与风险偏好的 research ideas，并创建 `recommended-ideas.md`。每个 idea 应说明对 FedAvg baseline 的最小改动、评估指标、最小验证实验、资源预算和风险。
+tools: []
+expected_tools: []
+ideal_tool_sequence: []
+custom_check: research/idea_generate_qa_005.py
+workspace_seed_dir: ../../datasets/research/idea_generate/qa-005/fixtures
+category: research_idea_generation
+description: Generate low-risk federated personalization ideas under a single-GPU, eight-hour budget.
+objective: Preserve the supplied FedAvg baseline while proposing feasible, measurable personalization experiments.
+prerequisites:
+- The workspace is writable.
+- "`materials/task.md` is present."
+steps:
+- Read the synthetic resource constraints.
+- Generate feasible and low-risk ideas.
+- Create the recommendation file.
+expected_outcome: Resource-aware ideas in `recommended-ideas.md`.
+scoring_criteria:
+- The output exists.
+- Source rubric keywords and resource constraints are covered proportionally.
+fixtures:
+  path: ../../datasets/research/idea_generate/qa-005/fixtures
+time_limit: 240

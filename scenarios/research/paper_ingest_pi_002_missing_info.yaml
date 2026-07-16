@@ -1,0 +1,47 @@
+id: research_paper_ingest_pi_002
+name: Sparse-Abstract Wiki Entry
+execution_mode: live
+dimension: tool_use
+difficulty: medium
+benchmark_group: intelligence
+benchmark_status: incubating
+benchmark_core: false
+signal_source: workspace_live
+weight: 1.0
+timeout_seconds: 240
+optimal_steps: 5
+pass_threshold: 0.5
+tags: [research, paper-ingest, wiki, missing-information, closed-world]
+prompt: |
+  当前工作区已经放好了只读输入文件 `materials/edge-reg-abstract.md`，它是目前唯一可用的论文材料。
+
+  请创建 `wiki/domains/bench/papers/edge-reg.md`：
+  - 包含完整 frontmatter：`title`、`type: paper`、`domain`、`evidence_level`、`created`、`updated`
+  - 包含从 `## 0.` 到 `## 15.` 的全部 16 个编号章节，其中最后一节是 `## 15. 一句话总结`
+  - 任何摘要中没有给出的信息都明确写为“论文中未明确说明”
+  - 不得使用“可能是”“应该是”等猜测性措辞
+  - 一句话总结只能依据输入摘要
+
+tools: []
+expected_tools: []
+ideal_tool_sequence: []
+custom_check: research/paper_ingest_pi_002.py
+workspace_seed_dir: ../../datasets/research/paper_ingest/pi-002/fixtures
+category: research_paper_ingest
+description: Build a complete wiki entry from a deliberately sparse synthetic abstract without guessing.
+objective: Preserve uncertainty explicitly while producing all required wiki sections.
+prerequisites:
+- The workspace is writable.
+- "`materials/edge-reg-abstract.md` is present."
+steps:
+- Read the only available abstract.
+- Create a complete structured wiki entry.
+- Mark unavailable information explicitly.
+expected_outcome: A 16-section `edge-reg.md` page grounded only in the sparse abstract.
+scoring_criteria:
+- The wiki entry exists with complete frontmatter and sections.
+- Missing information is explicitly marked.
+- Guessing language is absent.
+fixtures:
+  path: ../../datasets/research/paper_ingest/pi-002/fixtures
+time_limit: 240

@@ -1,0 +1,48 @@
+id: research_paper_ingest_pi_001
+name: Synthetic Paper Wiki Ingest
+execution_mode: live
+dimension: tool_use
+difficulty: hard
+benchmark_group: intelligence
+benchmark_status: incubating
+benchmark_core: false
+signal_source: workspace_live
+weight: 1.0
+timeout_seconds: 300
+optimal_steps: 8
+pass_threshold: 0.5
+tags: [research, paper-ingest, wiki, closed-world]
+prompt: |
+  当前工作区已经放好了只读输入文件 `raw/inbox/benchingest.md`。请把这篇合成论文整理进本地 wiki。
+
+  输出要求：
+  - 创建 `wiki/domains/bench/papers/benchingest.md`，包含完整 frontmatter：`title`、`type: paper`、`domain`、`evidence_level`、`created`、`updated`
+  - 论文页必须包含从 `## 0.` 到 `## 15.` 的全部 16 个编号章节，其中最后一节是 `## 15. 一句话总结`
+  - 创建或更新 `wiki/index.md`，加入该论文页的引用
+  - 创建或追加 `wiki/log.md`，记录本次 ingest
+
+  只依据输入文件，不要编造论文内容或结果。
+tools: []
+expected_tools: []
+ideal_tool_sequence: []
+custom_check: research/paper_ingest_pi_001.py
+workspace_seed_dir: ../../datasets/research/paper_ingest/pi-001/fixtures
+category: research_paper_ingest
+description: Ingest a synthetic paper into a structured local wiki.
+objective: Create a complete 16-section paper page and update the wiki index and append-only log.
+prerequisites:
+- The workspace is writable.
+- "`raw/inbox/benchingest.md` is present."
+steps:
+- Read the synthetic paper.
+- Create the structured wiki paper page.
+- Update the wiki index.
+- Append an ingest log entry.
+expected_outcome: The paper page, `wiki/index.md`, and `wiki/log.md` contain the required deterministic content.
+scoring_criteria:
+- All three wiki artifacts exist.
+- Frontmatter and all 16 numbered sections are present.
+- Index and log reference BenchIngest.
+fixtures:
+  path: ../../datasets/research/paper_ingest/pi-001/fixtures
+time_limit: 300
