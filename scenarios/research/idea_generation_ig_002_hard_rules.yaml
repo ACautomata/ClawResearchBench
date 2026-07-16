@@ -1,0 +1,46 @@
+id: research_idea_generation_ig_002
+name: Single-Paper Idea Hard Rules
+execution_mode: live
+dimension: synthesis
+difficulty: medium
+benchmark_group: intelligence
+benchmark_status: incubating
+benchmark_core: false
+signal_source: workspace_live
+weight: 1.0
+timeout_seconds: 240
+optimal_steps: 5
+pass_threshold: 0.5
+tags: [research, idea-generation, hard-rules, closed-world]
+prompt: |
+  当前工作区已经放好了只读输入文件 `paper/tinyrec.md`。
+
+  请只依据这篇论文创建 `recommended-ideas.md`。每个研究创意必须：
+  - 引用 TinyRec 中的具体 evidence
+  - 指定至少一个 metric
+  - 指出至少一个 risk 或 failure mode
+  - 给出至少一个最小 validation experiment
+
+  不得编造输入中不存在的数字或定量结果；不得使用“should be”或“probably”等无来源推测。
+tools: []
+expected_tools: []
+ideal_tool_sequence: []
+custom_check: research/idea_generation_ig_002.py
+workspace_seed_dir: ../../datasets/research/idea_generation/ig-002/fixtures
+category: research_idea_generation
+description: Generate evidence-grounded ideas from one synthetic paper under strict hard rules.
+objective: Produce recommendations with evidence, metric, risk, validation, and no unsupported claims.
+prerequisites:
+- The workspace is writable.
+- "`paper/tinyrec.md` is present."
+steps:
+- Read TinyRec.
+- Generate grounded and testable ideas.
+- Create the recommendation file.
+expected_outcome: A `recommended-ideas.md` grounded only in TinyRec.
+scoring_criteria:
+- The output exists and covers every hard-rule field.
+- Unsupported language and fabricated numbers are absent.
+fixtures:
+  path: ../../datasets/research/idea_generation/ig-002/fixtures
+time_limit: 240

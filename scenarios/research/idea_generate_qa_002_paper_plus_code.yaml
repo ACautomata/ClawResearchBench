@@ -1,0 +1,40 @@
+id: research_idea_generate_qa_002
+name: Low-Cost Vision-Language OOD Ideas
+execution_mode: live
+dimension: synthesis
+difficulty: medium
+benchmark_group: intelligence
+benchmark_status: incubating
+benchmark_core: false
+signal_source: workspace_live
+weight: 1.0
+timeout_seconds: 240
+optimal_steps: 4
+pass_threshold: 0.5
+tags: [research, idea-generate, paper-plus-code, closed-world]
+prompt: |
+  当前工作区已经放好了只读输入文件 `materials/task.md`。
+
+  请只依据该材料生成 2-4 个低成本 research ideas，并创建 `recommended-ideas.md`。每个 idea 应说明依据、对现有 pipeline 的最小改动、AUROC/FPR95 评估、最小验证实验和具体风险。必须遵守“不能重新训练 backbone”的约束。
+tools: []
+expected_tools: []
+ideal_tool_sequence: []
+custom_check: research/idea_generate_qa_002.py
+workspace_seed_dir: ../../datasets/research/idea_generate/qa-002/fixtures
+category: research_idea_generation
+description: Generate low-cost OOD detection ideas while preserving a fixed CLIP backbone.
+objective: Propose scoring-only changes with grounded metrics and validation plans.
+prerequisites:
+- The workspace is writable.
+- "`materials/task.md` is present."
+steps:
+- Read the synthetic paper and code constraints.
+- Generate low-cost ideas that preserve the backbone.
+- Create the recommendation file.
+expected_outcome: Two to four compliant ideas in `recommended-ideas.md`.
+scoring_criteria:
+- The output exists and covers source rubric keywords.
+- The fixed-backbone constraint is respected.
+fixtures:
+  path: ../../datasets/research/idea_generate/qa-002/fixtures
+time_limit: 240

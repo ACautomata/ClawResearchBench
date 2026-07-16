@@ -1,0 +1,55 @@
+id: research_paper_review_pipeline_prp_003
+name: Pipeline PRP-003
+execution_mode: live
+dimension: synthesis
+difficulty: hard
+benchmark_group: intelligence
+benchmark_status: incubating
+benchmark_core: false
+signal_source: workspace_live
+weight: 1.0
+timeout_seconds: 360
+optimal_steps: 6
+pass_threshold: 0.5
+tags:
+- research
+- paper-review-pipeline
+- closed-world
+prompt: '当前工作区已经放好了只读输入文件。
+
+
+  请阅读 materials/ 中的 FedAux 论文材料，完成以下 pipeline 任务。
+
+
+  任务：请只执行 stage 1 (experiment-extractor) 并输出 11-section 模板。
+
+
+  将结果写入以下文件：
+
+  - `outputs/prp_003/fedaux-experiment.md`
+
+
+  基于材料中的证据进行分析，不得编造材料中不存在的数据或结论。'
+tools: []
+expected_tools: []
+ideal_tool_sequence: []
+custom_check: research/paper_review_pipeline_prp_003.py
+workspace_seed_dir: ../../datasets/research/paper_review_pipeline/prp_003/fixtures
+category: research_paper_review_pipeline
+description: Pipeline PRP-003
+objective: Complete the research task grounded only in the seeded input material.
+prerequisites:
+- The workspace is writable.
+- Input material is present in materials/.
+steps:
+- Read the seeded input material under materials/.
+- Complete the requested analysis.
+- Write the required output file(s).
+expected_outcome: A grounded research artifact matching the deterministic rubric.
+scoring_criteria:
+- Output file(s) exist.
+- Required keywords and section headings are present.
+- No forbidden phrases appear.
+fixtures:
+  path: ../../datasets/research/paper_review_pipeline/prp_003/fixtures
+time_limit: 360

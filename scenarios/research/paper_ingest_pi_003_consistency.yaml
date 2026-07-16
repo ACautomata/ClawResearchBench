@@ -1,0 +1,47 @@
+id: research_paper_ingest_pi_003
+name: Cross-Paper Evaluation Comparison
+execution_mode: live
+dimension: tool_use
+difficulty: medium
+benchmark_group: intelligence
+benchmark_status: incubating
+benchmark_core: false
+signal_source: workspace_live
+weight: 1.0
+timeout_seconds: 240
+optimal_steps: 5
+pass_threshold: 0.5
+tags: [research, paper-ingest, comparison, evidence, closed-world]
+prompt: |
+  当前工作区已经放好了只读输入文件 `materials/paper-summaries.md`，其中包含刚入库的 edge-aware 与 gated attention 两篇论文摘要。
+
+  请创建 `wiki/domains/gnn-regularization/comparison.md`。比较页必须：
+  - 引用 edge-aware 和 gated attention
+  - 分别写明 Cora、CiteSeer、Chameleon 数据集
+  - 写明 baseline 和 evidence
+  - 清楚区分 homophilous 与 heterophilous 两种评估设置，避免把不可直接比较的结果当作同一设置
+  - 不得引入输入文件中不存在的数字
+
+tools: []
+expected_tools: []
+ideal_tool_sequence: []
+custom_check: research/paper_ingest_pi_003.py
+workspace_seed_dir: ../../datasets/research/paper_ingest/pi-003/fixtures
+category: research_paper_ingest
+description: Compare two synthetic GNN papers across differing evaluation settings.
+objective: Produce an evidence-grounded comparison without fabricating quantitative results.
+prerequisites:
+- The workspace is writable.
+- "`materials/paper-summaries.md` is present."
+steps:
+- Read both synthetic paper summaries.
+- Identify differences in datasets and graph assumptions.
+- Write the comparison page.
+expected_outcome: A grounded `comparison.md` that references both papers and distinguishes their evaluation settings.
+scoring_criteria:
+- The comparison page exists.
+- Required papers, datasets, baseline, evidence, and setting terms appear.
+- No ungrounded numbers appear.
+fixtures:
+  path: ../../datasets/research/paper_ingest/pi-003/fixtures
+time_limit: 240

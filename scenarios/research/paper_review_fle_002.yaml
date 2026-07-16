@@ -1,0 +1,53 @@
+id: research_paper_review_fle_002
+name: Paper Review fle-002
+execution_mode: live
+dimension: synthesis
+difficulty: hard
+benchmark_group: intelligence
+benchmark_status: incubating
+benchmark_core: false
+signal_source: workspace_live
+weight: 1.0
+timeout_seconds: 300
+optimal_steps: 6
+pass_threshold: 0.5
+tags:
+- research
+- paper-review
+- closed-world
+prompt: '当前工作区已经放好了只读输入文件。
+
+
+  请阅读 materials/input.md 中的材料，按要求完成分析任务。
+
+
+  任务说明：请执行 paper-review-style-problem-analyzer skill，对论文「Generative Adversarial Training for Neural Combinatorial Optimization
+  Models」(ICLR 2022)进行审稿式问题分析。请严格按 skill 模板输出完整的6个section：文档定位 / 方法机制与关键前提 / 核心贡献声明与审稿式质疑 / 潜在问题分析 / 验证候选问题与优先级 / 研究空缺方向与简短结论。
+
+
+  将完整 Markdown 结果写入 `outputs/fle_002.md`。
+
+  基于材料中的证据进行分析，不得编造材料中不存在的数据或结论。'
+tools: []
+expected_tools: []
+ideal_tool_sequence: []
+custom_check: research/paper_review_fle_002.py
+workspace_seed_dir: ../../datasets/research/paper_review/fle_002/fixtures
+category: research_paper_review
+description: Paper Review fle-002
+objective: Complete the research task grounded only in the seeded input material.
+prerequisites:
+- The workspace is writable.
+- Input material is present in materials/.
+steps:
+- Read the seeded input material under materials/.
+- Complete the requested analysis.
+- Write the required output file(s).
+expected_outcome: A grounded research artifact matching the deterministic rubric.
+scoring_criteria:
+- Output file(s) exist.
+- Required keywords and section headings are present.
+- No forbidden phrases appear.
+fixtures:
+  path: ../../datasets/research/paper_review/fle_002/fixtures
+time_limit: 300

@@ -1,0 +1,55 @@
+id: research_paper_review_s4_reflexion_minimal
+name: Paper Review s4-reflexion-minimal
+execution_mode: live
+dimension: synthesis
+difficulty: hard
+benchmark_group: intelligence
+benchmark_status: incubating
+benchmark_core: false
+signal_source: workspace_live
+weight: 1.0
+timeout_seconds: 300
+optimal_steps: 6
+pass_threshold: 0.5
+tags:
+- research
+- paper-review
+- closed-world
+prompt: '当前工作区已经放好了只读输入文件。
+
+
+  请阅读 materials/input.md 中的材料，按要求完成分析任务。
+
+
+  任务说明：Design minimal single-variable experiment. Ignore noise in materials.
+
+
+  重要：完成分析后必须将完整 Markdown 正文直接返回在回复中。不得只回复文件路径、''已保存到'' 或 ''任务完成'' 等状态摘要。回复的第一行就应该是 Markdown 正文的标题。
+
+
+  将完整 Markdown 结果写入 `outputs/s4_reflexion_minimal.md`。
+
+  基于材料中的证据进行分析，不得编造材料中不存在的数据或结论。'
+tools: []
+expected_tools: []
+ideal_tool_sequence: []
+custom_check: research/paper_review_s4_reflexion_minimal.py
+workspace_seed_dir: ../../datasets/research/paper_review/s4_reflexion_minimal/fixtures
+category: research_paper_review
+description: Paper Review s4-reflexion-minimal
+objective: Complete the research task grounded only in the seeded input material.
+prerequisites:
+- The workspace is writable.
+- Input material is present in materials/.
+steps:
+- Read the seeded input material under materials/.
+- Complete the requested analysis.
+- Write the required output file(s).
+expected_outcome: A grounded research artifact matching the deterministic rubric.
+scoring_criteria:
+- Output file(s) exist.
+- Required keywords and section headings are present.
+- No forbidden phrases appear.
+fixtures:
+  path: ../../datasets/research/paper_review/s4_reflexion_minimal/fixtures
+time_limit: 300
