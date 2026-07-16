@@ -1,7 +1,7 @@
 id: research_paper_review_s4_selfinstruct_budget
 name: Paper Review s4-selfinstruct-budget
 execution_mode: live
-dimension: synthesis
+dimension: research
 difficulty: hard
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -33,9 +33,25 @@ prompt: '当前工作区已经放好了只读输入文件。
 tools: []
 expected_tools: []
 ideal_tool_sequence: []
-custom_check: research/paper_review_s4_selfinstruct_budget.py
+custom_check: research/paper_review_grader.py
+custom_check_config:
+  output: outputs/s4_selfinstruct_budget.md
+  must_contain:
+  - 预算
+  - 优先级
+  - 最小
+  - 自变量
+  - '## 0. 文档定位'
+  - '## 1. 验证目标总览'
+  - '## 3. 核心验证实验设计'
+  - '## 5. 实验优先级排序'
+  must_not_contain: []
+  fields:
+  - '## 0. 文档定位'
+  - '## 1. 验证目标总览'
+  - '## 3. 核心验证实验设计'
+  - '## 5. 实验优先级排序'
 workspace_seed_dir: ../../datasets/research/paper_review/s4_selfinstruct_budget/fixtures
-category: research_paper_review
 description: Paper Review s4-selfinstruct-budget
 objective: Complete the research task grounded only in the seeded input material.
 prerequisites:
@@ -50,6 +66,4 @@ scoring_criteria:
 - Output file(s) exist.
 - Required keywords and section headings are present.
 - No forbidden phrases appear.
-fixtures:
-  path: ../../datasets/research/paper_review/s4_selfinstruct_budget/fixtures
 time_limit: 300

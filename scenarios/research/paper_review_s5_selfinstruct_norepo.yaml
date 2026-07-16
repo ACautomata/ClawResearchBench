@@ -1,7 +1,7 @@
 id: research_paper_review_s5_selfinstruct_norepo
 name: Paper Review s5-selfinstruct-norepo
 execution_mode: live
-dimension: synthesis
+dimension: research
 difficulty: hard
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -33,9 +33,23 @@ prompt: '当前工作区已经放好了只读输入文件。
 tools: []
 expected_tools: []
 ideal_tool_sequence: []
-custom_check: research/paper_review_s5_selfinstruct_norepo.py
+custom_check: research/paper_review_grader.py
+custom_check_config:
+  output: outputs/s5_selfinstruct_norepo.md
+  must_contain:
+  - '# 发给 claude-code 的完整任务提示词'
+  - 此处应填写代码仓库路径
+  - 占位符
+  - '# 发给 claude-code 的完整任务提示词'
+  - '## 6. 建议优先查看的代码位置'
+  must_not_contain:
+  - model.py
+  - data.py
+  - train.py
+  fields:
+  - '# 发给 claude-code 的完整任务提示词'
+  - '## 6. 建议优先查看的代码位置'
 workspace_seed_dir: ../../datasets/research/paper_review/s5_selfinstruct_norepo/fixtures
-category: research_paper_review
 description: Paper Review s5-selfinstruct-norepo
 objective: Complete the research task grounded only in the seeded input material.
 prerequisites:
@@ -50,6 +64,4 @@ scoring_criteria:
 - Output file(s) exist.
 - Required keywords and section headings are present.
 - No forbidden phrases appear.
-fixtures:
-  path: ../../datasets/research/paper_review/s5_selfinstruct_norepo/fixtures
 time_limit: 300

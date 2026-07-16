@@ -1,7 +1,7 @@
 id: research_paper_ingest_pi_002
 name: Sparse-Abstract Wiki Entry
 execution_mode: live
-dimension: tool_use
+dimension: research
 difficulty: medium
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -27,7 +27,6 @@ expected_tools: []
 ideal_tool_sequence: []
 custom_check: research/paper_ingest_pi_002.py
 workspace_seed_dir: ../../datasets/research/paper_ingest/pi-002/fixtures
-category: research_paper_ingest
 description: Build a complete wiki entry from a deliberately sparse synthetic abstract without guessing.
 objective: Preserve uncertainty explicitly while producing all required wiki sections.
 prerequisites:
@@ -42,6 +41,4 @@ scoring_criteria:
 - The wiki entry exists with complete frontmatter and sections.
 - Missing information is explicitly marked.
 - Guessing language is absent.
-fixtures:
-  path: ../../datasets/research/paper_ingest/pi-002/fixtures
 time_limit: 240
