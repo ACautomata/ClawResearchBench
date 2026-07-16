@@ -1,9 +1,16 @@
-"""Shared deterministic grading for inline idea-generation rule scenarios."""
+"""Deep per-family grader for research idea-generate scenarios.
+
+Serves the 50 ``idea_generate_qa_*`` scenarios. Each scenario carries its rubric
+as data in ``custom_check_config`` (``keywords`` and, optionally,
+``forbidden_phrases``) rather than as a copied ``.py`` wrapper, so a new scenario
+is one YAML entry, not a new file. Absorbs the logic previously in
+``idea_generate_rules.grade_keyword_output``.
+"""
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable
+from typing import Any
 
 from harness.custom_check_helpers import file_exists_checkpoint, skip_checkpoints
 
@@ -11,12 +18,11 @@ from harness.custom_check_helpers import file_exists_checkpoint, skip_checkpoint
 OUTPUT_PATH = Path("recommended-ideas.md")
 
 
-def grade_keyword_output(
-    workspace_path: str,
-    keywords: Iterable[str],
-    *,
-    forbidden_phrases: Iterable[str] = (),
-) -> dict:
+def grade(workspace_path: str, trace: dict, tool_calls: list[dict], scenario: Any) -> dict:
+    config = scenario.custom_check_config
+    keywords = config["keywords"]  # fail-fast: every idea-generate scenario must declare keywords
+    forbidden_phrases = list(config.get("forbidden_phrases") or [])
+
     workspace = Path(workspace_path)
     checkpoints: dict[str, dict[str, object]] = {}
     output_path = workspace / OUTPUT_PATH
