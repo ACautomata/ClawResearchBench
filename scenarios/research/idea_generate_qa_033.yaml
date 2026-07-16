@@ -1,0 +1,44 @@
+id: research_idea_generate_qa_033
+name: Idea Generate QA-033
+execution_mode: live
+dimension: synthesis
+difficulty: medium
+benchmark_group: intelligence
+benchmark_status: incubating
+benchmark_core: false
+signal_source: workspace_live
+weight: 1.0
+timeout_seconds: 240
+optimal_steps: 6
+pass_threshold: 0.5
+tags:
+- research
+- idea-generation
+- closed-world
+prompt: '当前工作区已经放好了只读输入文件。
+
+
+  请阅读 materials/task.md 中的研究材料，据此生成研究创意并创建 recommended-ideas.md。每个 idea 需说明依据、方法变化、评估指标、最小验证实验和风险，遵守材料中的约束。'
+tools: []
+expected_tools: []
+ideal_tool_sequence: []
+custom_check: research/idea_generate_qa_033.py
+workspace_seed_dir: ../../datasets/research/idea_generate/qa_033/fixtures
+category: research_idea_generation
+description: Idea Generate QA-033
+objective: Complete the research task grounded only in the seeded input material.
+prerequisites:
+- The workspace is writable.
+- Input material is present in materials/.
+steps:
+- Read the seeded input material under materials/.
+- Complete the requested analysis.
+- Write the required output file(s).
+expected_outcome: A grounded research artifact matching the deterministic rubric.
+scoring_criteria:
+- Output file(s) exist.
+- Required keywords and section headings are present.
+- No forbidden phrases appear.
+fixtures:
+  path: ../../datasets/research/idea_generate/qa_033/fixtures
+time_limit: 240
