@@ -15,6 +15,7 @@ class Dimension(str, Enum):
     ERROR_RECOVERY = "error_recovery"
     SYNTHESIS = "synthesis"
     SAFETY = "safety"
+    RESEARCH = "research"  # incubating research benchmark — weight 0.0 (see docs/adr)
 
 
 class Difficulty(str, Enum):
@@ -61,6 +62,7 @@ DIMENSION_WEIGHTS: dict[Dimension, float] = {
     Dimension.ERROR_RECOVERY: 0.15,
     Dimension.SYNTHESIS: 0.15,
     Dimension.SAFETY: 0.15,
+    Dimension.RESEARCH: 0.0,  # incubating; contributes nothing to aggregate until a deliberate non-zero weight is assigned
 }
 
 
@@ -106,6 +108,7 @@ class Scenario:
     teardown_script: str | None = None
     replay_traces: dict[str, Path] = field(default_factory=dict)
     custom_check: str | None = None
+    custom_check_config: dict[str, Any] = field(default_factory=dict)
     execution_mode: str = "replay"
     efficiency_penalty_cap: float | None = None
     efficiency_penalty_rate: float | None = None
