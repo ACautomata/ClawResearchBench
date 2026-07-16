@@ -28,7 +28,6 @@ SRC = Path("/Users/junran/Documents/research-agent/benchmarks")
 DST = Path("/Users/junran/Documents/ClawResearchBench")
 
 SCENARIOS = DST / "scenarios" / "research"
-CHECKS = DST / "custom_checks" / "research"
 DATASETS = DST / "datasets" / "research"
 
 
@@ -70,16 +69,21 @@ def _copy_ref(rel_ref: str, src_root: Path, dst_materials: Path) -> None:
 # ---------------------------------------------------------------------------
 
 def _write_yaml(path: Path, *, scenario_id: str, name: str, custom_check: str,
-                seed_dir: str, prompt: str, category: str, timeout: int,
-                difficulty: str = "medium") -> None:
+                custom_check_config: dict, seed_dir: str, prompt: str, category: str,
+                timeout: int, difficulty: str = "medium") -> None:
     """Write a scenario YAML file using the yaml module so volatile prompt
-    content is safely escaped regardless of internal colons / quotes."""
+    content is safely escaped regardless of internal colons / quotes.
+
+    Emits YAML + fixture material only; no per-scenario .py wrapper is produced.
+    Per-scenario grading config rides on the scenario as ``custom_check_config``
+    and is consumed by the family grader named in ``custom_check``.
+    """
     import yaml as _yaml
     data: dict = {
         "id": scenario_id,
         "name": name,
         "execution_mode": "live",
-        "dimension": "synthesis",
+        "dimension": "research",
         "difficulty": difficulty,
         "benchmark_group": "intelligence",
         "benchmark_status": "incubating",
@@ -95,8 +99,8 @@ def _write_yaml(path: Path, *, scenario_id: str, name: str, custom_check: str,
         "expected_tools": [],
         "ideal_tool_sequence": [],
         "custom_check": custom_check,
+        "custom_check_config": custom_check_config,
         "workspace_seed_dir": seed_dir,
-        "category": category,
         "description": name,
         "objective": "Complete the research task grounded only in the seeded input material.",
         "prerequisites": [
@@ -114,7 +118,6 @@ def _write_yaml(path: Path, *, scenario_id: str, name: str, custom_check: str,
             "Required keywords and section headings are present.",
             "No forbidden phrases appear.",
         ],
-        "fixtures": {"path": seed_dir},
         "time_limit": timeout,
     }
     path.write_text(_yaml.dump(data, allow_unicode=True, sort_keys=False, width=120), encoding="utf-8")
@@ -146,19 +149,10 @@ def gen_idea_generate(qa: dict) -> None:
     _write_yaml(SCENARIOS / f"idea_generate_{sid}.yaml",
                 scenario_id=f"research_idea_generate_{sid}",
                 name=f"Idea Generate {qa['qa_id']}",
-                custom_check=f"research/idea_generate_{sid}.py",
+                custom_check="research/idea_generate_grader.py",
+                custom_check_config={"keywords": keywords},
                 seed_dir=seed_dir, prompt=prompt,
                 category="research_idea_generation", timeout=240)
-
-    qid = qa["qa_id"]
-    (CHECKS / f"idea_generate_{sid}.py").write_text(
-        f'"""Deterministic grading for research idea-generate {qid}."""\n\n'
-        "from custom_checks.research.idea_generate_rules import grade_keyword_output\n\n\n"
-        f"KEYWORDS = {keywords!r}\n\n\n"
-        "def grade(workspace_path: str, trace: dict, tool_calls: list[dict]) -> dict:\n"
-        "    return grade_keyword_output(workspace_path, KEYWORDS)\n",
-        encoding="utf-8",
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -227,29 +221,16 @@ def gen_paper_review(qa: dict) -> None:
     _write_yaml(SCENARIOS / f"paper_review_{sid}.yaml",
                 scenario_id=f"research_paper_review_{sid}",
                 name=f"Paper Review {qa['qa_id']}",
-                custom_check=f"research/paper_review_{sid}.py",
+                custom_check="research/paper_review_grader.py",
+                custom_check_config={
+                    "output": output_rel,
+                    "must_contain": must_contain,
+                    "must_not_contain": must_not_contain,
+                    "fields": fields,
+                },
                 seed_dir=seed_dir, prompt=prompt,
                 category="research_paper_review", timeout=300,
                 difficulty="hard")
-
-    qid = qa["qa_id"]
-    (CHECKS / f"paper_review_{sid}.py").write_text(
-        f'"""Deterministic grading for research paper-review {qid}."""\n\n'
-        "from custom_checks.research.paper_review_rules import grade_paper_review\n\n\n"
-        f"MUST_CONTAIN = {must_contain!r}\n"
-        f"MUST_NOT_CONTAIN = {must_not_contain!r}\n"
-        f"FIELDS = {fields!r}\n"
-        f"OUTPUT_REL = {output_rel!r}\n\n\n"
-        "def grade(workspace_path: str, trace: dict, tool_calls: list[dict]) -> dict:\n"
-        "    return grade_paper_review(\n"
-        "        workspace_path,\n"
-        "        OUTPUT_REL,\n"
-        "        MUST_CONTAIN,\n"
-        "        must_not_contain=MUST_NOT_CONTAIN,\n"
-        "        fields=FIELDS,\n"
-        "    )\n",
-        encoding="utf-8",
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -301,44 +282,14 @@ def gen_pipeline() -> None:
         _write_yaml(SCENARIOS / f"paper_review_pipeline_{sid}.yaml",
                     scenario_id=f"research_paper_review_pipeline_{sid}",
                     name=f"Pipeline {qa['qa_id']}",
-                    custom_check=f"research/paper_review_pipeline_{sid}.py",
+                    custom_check="research/paper_review_grader.py",
+                    custom_check_config={
+                        "outputs": outputs,
+                        "keywords": must_contain,
+                    },
                     seed_dir=seed_dir, prompt=prompt,
                     category="research_paper_review_pipeline", timeout=360,
                     difficulty="hard")
-
-        qid = qa["qa_id"]
-        # Generate multi-output check.
-        check_body = (
-            f'"""Deterministic grading for research paper-review-pipeline {qid}."""\n\n'
-            "from pathlib import Path\n"
-            "from harness.custom_check_helpers import file_exists_checkpoint, skip_checkpoints\n\n\n"
-            f"OUTPUTS = {outputs!r}\n"
-            f"KEYWORDS = {must_contain!r}\n\n\n"
-            "def grade(workspace_path: str, trace: dict, tool_calls: list[dict]) -> dict:\n"
-            "    workspace = Path(workspace_path)\n"
-            "    checkpoints: dict[str, dict[str, object]] = {}\n"
-            "    n = len(OUTPUTS) or 1\n"
-            "    for rel in OUTPUTS:\n"
-            "        p = workspace / rel\n"
-            "        cid = 'output_' + rel.replace('.', '_').replace('/', '_')\n"
-            "        file_exists_checkpoint(checkpoints, cid, p, max_score=round(0.05 * n, 4))\n"
-            "    combined = ''\n"
-            "    for rel in OUTPUTS:\n"
-            "        p = workspace / rel\n"
-            "        if p.exists():\n"
-            "            combined += p.read_text(encoding='utf-8') + '\\n'\n"
-            "    if not combined.strip():\n"
-            "        skip_checkpoints(checkpoints, [('keyword_coverage', 0.6)])\n"
-            "        return {'checkpoints': checkpoints, 'safety_violations': []}\n"
-            "    hits = sum(kw.lower() in combined.lower() for kw in KEYWORDS)\n"
-            "    checkpoints['keyword_coverage'] = {\n"
-            "        'score': round(0.6 * hits / len(KEYWORDS), 4) if KEYWORDS else 0.0,\n"
-            "        'max': 0.6,\n"
-            "        'detail': f'keywords={hits}/{len(KEYWORDS)}',\n"
-            "    }\n"
-            "    return {'checkpoints': checkpoints, 'safety_violations': []}\n"
-        )
-        (CHECKS / f"paper_review_pipeline_{sid}.py").write_text(check_body, encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
