@@ -381,6 +381,9 @@ def _clear_scenario_owned_target_paths(scenario: Scenario, target_workspace: Pat
         try:
             candidate.relative_to(root)  # refuse to escape the workspace root
         except ValueError:
+            unresolved = target_workspace / rel
+            if unresolved.is_symlink():
+                unresolved.unlink(missing_ok=True)
             continue
         # Never delete the workspace root itself: a malformed scenario path like
         # "/" or "." resolves to root, and relative_to(root) returns "." (no
@@ -1722,9 +1725,9 @@ class BenchmarkRunner:
                                 # brings them back - no permanent loss.
                                 target_workspace_snapshot_dir = tempfile.TemporaryDirectory(
                                     prefix=f"openclawprobench_{scenario.scenario_id}_target_",
-                                    dir=workspace_parent,
+                                    dir=None,
                                 )
-                                shutil.copytree(resolved, target_workspace_snapshot_dir.name, dirs_exist_ok=True)
+                                shutil.copytree(resolved, target_workspace_snapshot_dir.name, dirs_exist_ok=True, symlinks=True)
                                 # THEN clear stale scenario-owned outputs (built-in
                                 # check paths + fixtures + declared expected_outputs)
                                 # so the agent must produce them fresh for grading.
