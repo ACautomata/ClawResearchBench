@@ -1,5 +1,6 @@
 benchmark_core: false
 custom_check: tool_use_10_tool_optimization_live.py
+expected_outputs: [tool_strategy.json]
 difficulty: expert
 dimension: tool_use
 execution_mode: live

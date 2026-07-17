@@ -3,6 +3,7 @@ benchmark_group: coverage
 benchmark_status: incubating
 signal_source: workspace_live
 custom_check: synthesis_07_reverse_reasoning_live_v2.py
+expected_outputs: [incident_reverse_report.json]
 difficulty: expert
 dimension: synthesis
 execution_mode: live

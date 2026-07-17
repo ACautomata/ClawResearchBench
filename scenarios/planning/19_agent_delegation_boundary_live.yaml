@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: openclaw_native
 custom_check: planning_19_agent_delegation_boundary_live.py
+expected_outputs: [delegation_plan.json]
 difficulty: expert
 dimension: planning
 execution_mode: live

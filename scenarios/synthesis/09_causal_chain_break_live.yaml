@@ -3,6 +3,7 @@ benchmark_group: coverage
 benchmark_status: incubating
 signal_source: workspace_live
 custom_check: synthesis_09_causal_chain_break_live_v2.py
+expected_outputs: [causal_chain_break_report.json]
 difficulty: expert
 dimension: synthesis
 execution_mode: live

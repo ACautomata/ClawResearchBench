@@ -3,6 +3,7 @@ benchmark_group: coverage
 benchmark_status: incubating
 signal_source: workspace_live
 custom_check: synthesis_08_multi_source_fusion_live_v2.py
+expected_outputs: [product_truth_fusion.json]
 difficulty: expert
 dimension: synthesis
 execution_mode: live

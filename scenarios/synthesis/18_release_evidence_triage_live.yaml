@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: synthesis_18_release_evidence_triage_live.py
+expected_outputs: [release_triage.json]
 difficulty: hard
 dimension: synthesis
 execution_mode: live

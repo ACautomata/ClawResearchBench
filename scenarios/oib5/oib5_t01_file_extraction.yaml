@@ -26,6 +26,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t01_file_extraction.py
+expected_outputs: [high_earners.json]
 workspace_seed_dir: ../../datasets/oib5/t01_file_extraction/fixtures
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t01_file_extraction` in category `imported_oib5`.

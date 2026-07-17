@@ -33,6 +33,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t07_git_ops.py
+expected_outputs: [README.md, git_log.txt]
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t07_git_ops` in category `imported_oib5`.
 objective: Complete scenario `Git 操作 — 分支与提交` and satisfy its scoring checks.

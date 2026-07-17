@@ -268,11 +268,14 @@ def _run_common(args: argparse.Namespace) -> int:
         print(f"timeout_multiplier: {timeout_multiplier}x")
     workspace_root = Path(args.workspace_root) if getattr(args, "workspace_root", None) else None
     results_dir = Path(args.results_dir)
+    # Opt-out of target-agent mode (--agent '') keys reports/resume by model slug,
+    # matching pre-target-mode behavior; target mode keys by agent id (spec #4).
+    report_slug = args.agent if (args.agent and args.agent.strip()) else args.model
     existing_result = None
     if getattr(args, "resume_from", None):
         existing_result = _load_existing_result(Path(args.resume_from))
     elif getattr(args, "continue_run", False):
-        latest = _find_latest_report(results_dir, args.agent)
+        latest = _find_latest_report(results_dir, report_slug)
         if latest is not None:
             existing_result = _load_existing_result(latest)
     # Reports are keyed by agent id, so the latest result_<agent>_*.json may have
@@ -294,9 +297,9 @@ def _run_common(args: argparse.Namespace) -> int:
     existing_report_path = Path(existing_result.summary["report_path"]) if existing_result and existing_result.summary.get("report_path") else None
     preserve_completed_source = bool(existing_result and existing_report_path and _report_is_complete(existing_result))
     if preserve_completed_source:
-        report_path = reserve_report_path(results_dir, args.agent)
+        report_path = reserve_report_path(results_dir, report_slug)
     else:
-        report_path = existing_report_path if existing_report_path else reserve_report_path(results_dir, args.agent)
+        report_path = existing_report_path if existing_report_path else reserve_report_path(results_dir, report_slug)
     if existing_result:
         print(
             "resume_source: "

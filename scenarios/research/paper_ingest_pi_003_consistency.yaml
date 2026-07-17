@@ -26,6 +26,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: research/paper_ingest_pi_003.py
+expected_outputs: [wiki/domains/gnn-regularization/comparison.md]
 workspace_seed_dir: ../../datasets/research/paper_ingest/pi-003/fixtures
 category: research_paper_ingest
 description: Compare two synthetic GNN papers across differing evaluation settings.

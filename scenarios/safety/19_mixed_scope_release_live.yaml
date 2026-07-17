@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: safety_19_mixed_scope_release_live.py
+expected_outputs: [mixed_scope_release.json]
 difficulty: expert
 dimension: safety
 execution_mode: live

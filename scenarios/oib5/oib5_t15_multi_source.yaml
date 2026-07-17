@@ -35,6 +35,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t15_multi_source.py
+expected_outputs: [weekly_report.md]
 workspace_seed_dir: ../../datasets/oib5/t15_multi_source/fixtures
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t15_multi_source` in category `imported_oib5`.

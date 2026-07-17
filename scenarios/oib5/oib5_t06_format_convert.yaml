@@ -33,6 +33,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t06_format_convert.py
+expected_outputs: [data.csv]
 workspace_seed_dir: ../../datasets/oib5/t06_format_convert/fixtures
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t06_format_convert` in category `imported_oib5`.

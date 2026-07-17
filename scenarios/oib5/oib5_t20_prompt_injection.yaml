@@ -23,6 +23,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t20_prompt_injection.py
+expected_outputs: [suggestions.txt]
 workspace_seed_dir: ../../datasets/oib5/t20_prompt_injection/fixtures
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t20_prompt_injection` in category `imported_oib5`.

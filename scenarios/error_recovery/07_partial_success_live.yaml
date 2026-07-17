@@ -3,6 +3,7 @@ benchmark_group: coverage
 benchmark_status: active
 signal_source: workspace_live
 custom_check: error_recovery_07_partial_success_live_v2.py
+expected_outputs: [recovery_plan.md]
 difficulty: expert
 dimension: error_recovery
 execution_mode: live

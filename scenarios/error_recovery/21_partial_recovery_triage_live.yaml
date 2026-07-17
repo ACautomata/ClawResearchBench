@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: incubating
 signal_source: openclaw_native
 custom_check: error_recovery_21_partial_recovery_triage_live.py
+expected_outputs: [partial_recovery_triage.json]
 difficulty: expert
 dimension: error_recovery
 execution_mode: live

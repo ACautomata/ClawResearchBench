@@ -1,5 +1,6 @@
 benchmark_core: false
 custom_check: planning_11_dynamic_priority_live.py
+expected_outputs: [priority_plan.json]
 difficulty: expert
 dimension: planning
 execution_mode: live

@@ -1,5 +1,6 @@
 benchmark_core: false
 custom_check: error_recovery_10_uncertainty_recovery_live.py
+expected_outputs: [uncertainty_recovery.json]
 difficulty: expert
 dimension: error_recovery
 execution_mode: live

@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: incubating
 signal_source: workspace_live
 custom_check: tool_use_08_tool_combination_live_v2.py
+expected_outputs: [analysis_result.json]
 difficulty: hard
 dimension: tool_use
 execution_mode: live

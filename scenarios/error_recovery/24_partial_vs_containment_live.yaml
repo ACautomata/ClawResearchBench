@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: openclaw_native
 custom_check: error_recovery_24_partial_vs_containment_live.py
+expected_outputs: [partial_containment_decision.json]
 difficulty: expert
 dimension: error_recovery
 execution_mode: live

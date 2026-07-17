@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: synthesis_19_incident_cause_chain_live.py
+expected_outputs: [incident_cause_chain.json]
 difficulty: expert
 dimension: synthesis
 execution_mode: live

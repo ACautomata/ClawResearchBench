@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: openclaw_native
 custom_check: constraints_23_external_approval_boundary_live.py
+expected_outputs: [approval_boundary.json]
 difficulty: expert
 dimension: constraints
 execution_mode: live

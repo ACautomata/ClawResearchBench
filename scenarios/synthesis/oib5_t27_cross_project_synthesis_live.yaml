@@ -120,6 +120,7 @@ ideal_tool_sequence:
 - read
 - write
 custom_check: oib5/t27_cross_project_synthesis_live_v2.py
+expected_outputs: [database_recommendation.json]
 workspace_seed_dir: ../../datasets/oib5/t27_cross_project_synthesis_live/fixtures
 category: synthesis
 description: 读取三个项目的 6 份历史资料，输出一个结构化、可核验的金融数据库选型结论。

@@ -20,6 +20,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: research/idea_generate_qa_002.py
+expected_outputs: [recommended-ideas.md]
 workspace_seed_dir: ../../datasets/research/idea_generate/qa-002/fixtures
 category: research_idea_generation
 description: Generate low-cost OOD detection ideas while preserving a fixed CLIP backbone.

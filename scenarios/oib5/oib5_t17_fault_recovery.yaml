@@ -27,6 +27,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t17_fault_recovery.py
+expected_outputs: [output, output_result.json, result.json]
 workspace_seed_dir: ../../datasets/oib5/t17_fault_recovery/fixtures
 setup_script: ../../datasets/oib5/t17_fault_recovery/inject.sh
 teardown_script: ../../datasets/oib5/t17_fault_recovery/cleanup.sh

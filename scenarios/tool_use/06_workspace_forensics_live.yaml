@@ -20,6 +20,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: tool_use_06_workspace_forensics_live.py
+expected_outputs: [evidence.txt, incident_summary.json]
 workspace_seed_dir: ../../datasets/frontier/tool_use_06_workspace_forensics_live/fixtures
 category: frontier_tool_use
 description: High-entropy workspace extraction task with nested logs, noise directories, and strict output requirements.

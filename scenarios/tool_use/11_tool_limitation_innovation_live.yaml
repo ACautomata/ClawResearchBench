@@ -1,5 +1,6 @@
 benchmark_core: false
 custom_check: tool_use_11_tool_limitation_innovation_live.py
+expected_outputs: [tool_innovation.json]
 difficulty: expert
 dimension: tool_use
 execution_mode: live

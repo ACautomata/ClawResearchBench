@@ -100,6 +100,7 @@ ideal_tool_sequence:
 - write
 workspace_seed_dir: ../../datasets/planning_09_resource_contention/fixtures
 custom_check: planning_09_resource_contention_live_v2.py
+expected_outputs: [resource_contention_plan.json]
 category: planning
 description: 基于 seeded 的 contention snapshot、资源池、任务队列和规则包，生成唯一正确的 deadlock recovery 与 wave scheduling 方案。
 objective: 正确断开 deadlock cycle、遵守全资源准入和依赖约束，并在固定窗口内给出唯一最优的 wave plan 与 deferred task。

@@ -50,6 +50,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t28_multi_agent_coordination_live.py
+expected_outputs: [schedule.json]
 workspace_seed_dir: ../../datasets/oib5/t28_multi_agent_coordination_live/fixtures
 category: planning
 description: Expert级多Agent协调任务。测试模型能否处理复杂的资源约束、隐藏依赖关系、时序限制和优先级冲突。需要深度推理和全局优化能力。

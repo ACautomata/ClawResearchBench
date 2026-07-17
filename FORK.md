@@ -42,20 +42,31 @@ ClawProBench drops or changes them, re-apply:
     configured `agents.defaults.model.primary`: `_agent_command` has no `--model`
     flag so the agent runs its configured model; a mismatch would mislabel
     pricing/report/resume.
-  - Target-mode live trials: snapshot the target's real workspace before
-    `execute_turn`, clear stale scenario-owned paths (`_clear_scenario_owned_target_paths`
-    - `file_exists`/`file_contains` check paths + fixture dests + seed-dir entries;
-    traversal-guarded, never touches `SOUL.md`/`skills/`) BEFORE the snapshot so it
-    is a clean baseline, grade from `live_result.workspace_path` (the real
-    workspace, not the temp dir), and roll the real workspace back to the snapshot
-    after grading via `_sync_workspace_to_snapshot` (merge + delete-extras).
+  - Target-mode live trials: snapshot the target's real workspace FIRST (full
+    baseline, capturing any target-owned path colliding with a fixture name),
+    THEN clear stale scenario-owned paths (`_clear_scenario_owned_target_paths`
+    - `file_exists`/`file_contains` check paths + fixture dests + seed-dir
+    entries + declared `expected_outputs`; traversal- and root-guarded, never
+    deletes the workspace root), grade from `live_result.workspace_path` (the
+    real workspace, not the temp dir), and roll the real workspace back to the
+    snapshot after grading via `_sync_workspace_to_snapshot` (crash-safe
+    staging+rename full-restore that handles file<->dir type conflicts). Because
+    the snapshot precedes the clear, target-owned seed-path collisions are
+    restored - never permanently lost.
   - `_run_pending_scenarios`: live workers are clamped to 1 in target mode (the
     target agent is a shared singleton; replay parallelism is unaffected).
+- `harness/models.py` + `harness/loader.py`: `Scenario.expected_outputs`
+  declares agent-output files (esp. for custom-check scenarios where YAML checks
+  are skipped and the grader module scores dynamically-read files); rolled out
+  to all custom-check scenario YAMLs whose grader references a workspace output
+  path statically.
 - `harness/reporter.py`: `reserve_report_path(slug=...)` is keyed by the agent id.
 - `run.py`: `--agent` (default `main`), `--model` optional + auto-resolved from
   `agents.defaults.model.primary`, report slug = agent id. `--continue` drops a
   loaded report whose model differs from the requested one (reports are keyed by
   agent id, so a cross-model `result_<agent>_*.json` is not reused/overwritten).
+  `--agent ''` (opt out of target mode) falls back to the model slug for resume
+  and report paths, matching pre-target-mode behavior.
 
 ## Safety invariants the fork guarantees for the target
 

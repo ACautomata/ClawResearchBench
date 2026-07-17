@@ -31,6 +31,7 @@ workspace_files:
     tier\": \"vip\", \"total\": 180},\n  {\"order_id\": \"A104\", \"tier\": \"standard\"\
     , \"total\": 95}\n]\n"
 custom_check: tool_use_02_workspace_extract_live.py
+expected_outputs: [vip_orders.csv]
 category: tool_use
 description: Legacy benchmark scenario `tool_use_02_workspace_extract_live` in category
   `tool_use`.

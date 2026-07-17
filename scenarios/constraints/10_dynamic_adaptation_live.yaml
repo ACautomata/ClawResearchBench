@@ -1,5 +1,6 @@
 benchmark_core: false
 custom_check: constraints_10_dynamic_adaptation_live.py
+expected_outputs: [adaptation_plan.json]
 difficulty: expert
 dimension: constraints
 execution_mode: live

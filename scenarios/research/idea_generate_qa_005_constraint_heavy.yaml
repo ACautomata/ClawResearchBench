@@ -20,6 +20,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: research/idea_generate_qa_005.py
+expected_outputs: [recommended-ideas.md]
 workspace_seed_dir: ../../datasets/research/idea_generate/qa-005/fixtures
 category: research_idea_generation
 description: Generate low-risk federated personalization ideas under a single-GPU, eight-hour budget.

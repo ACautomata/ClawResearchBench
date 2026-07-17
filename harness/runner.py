@@ -307,27 +307,29 @@ def _restore_workspace_from_snapshot(snapshot: Path, workspace: Path) -> None:
 
 
 def _sync_workspace_to_snapshot(snapshot: Path, workspace: Path) -> None:
-    """Restore ``workspace`` to match ``snapshot`` (rollback a trial's mutations).
+    """Restore ``workspace`` to match ``snapshot`` exactly (rollback a trial).
 
-    Unlike ``_restore_workspace_from_snapshot`` (merge-only), this also deletes
-    paths present in ``workspace`` but absent from ``snapshot`` so scenario-staged
-    artifacts are removed. Files unchanged since the snapshot are left untouched,
-    so the target agent's own contents (e.g. SOUL.md, skills/) are never wiped -
-    only trial-added/modified paths roll back.
+    Full replace (not merge) so a trial that flipped a path's type (file<->dir)
+    is handled correctly: a merge-only copytree could copy a snapshot file INTO a
+    workspace dir and keep the dir, or raise on a dir-over-file and leave the
+    workspace mutated. To stay crash-safe, the snapshot is copied to a staging
+    directory on the SAME filesystem as the live workspace; only after the copy
+    succeeds is the live workspace removed and replaced via an atomic os.rename,
+    so a copy failure leaves the existing workspace untouched rather than wiped.
+    The snapshot must be a complete pre-trial baseline (taken before staging).
     """
     if not snapshot.exists():
         raise FileNotFoundError(f"Workspace snapshot not found: {snapshot}")
-    workspace.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(snapshot, workspace, dirs_exist_ok=True)
-    snapshot_files = {
-        p.relative_to(snapshot) for p in snapshot.rglob("*") if p.is_file()
-    }
-    for path in workspace.rglob("*"):
-        if path.is_file() and path.relative_to(workspace) not in snapshot_files:
-            path.unlink()
-    for path in sorted(workspace.rglob("*"), reverse=True):
-        if path.is_dir() and not any(path.iterdir()) and not (snapshot / path.relative_to(workspace)).exists():
-            path.rmdir()
+    workspace.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix="openclawprobench_restore_", dir=str(workspace.parent)))
+    try:
+        shutil.copytree(snapshot, staging, dirs_exist_ok=True, symlinks=True)
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    if workspace.exists():
+        shutil.rmtree(workspace)
+    os.rename(staging, workspace)
 
 
 def _clear_scenario_owned_target_paths(scenario: Scenario, target_workspace: Path) -> None:
@@ -356,6 +358,11 @@ def _clear_scenario_owned_target_paths(scenario: Scenario, target_workspace: Pat
             path = check.config.get("path")
             if isinstance(path, str) and path.strip():
                 owned.add(path.strip().lstrip("/"))
+    for out_path in scenario.expected_outputs:
+        # Declared agent-output paths (esp. for custom-check scenarios where YAML
+        # checks are skipped and the custom module grades dynamically-read files).
+        if isinstance(out_path, str) and out_path.strip():
+            owned.add(out_path.strip().lstrip("/"))
     for item in scenario.workspace_files:
         if isinstance(item, str):
             owned.add(_default_workspace_dest(item))
@@ -1706,16 +1713,22 @@ class BenchmarkRunner:
                             resolved = self.live_harness.target_workspace_path()
                             if resolved is not None and resolved.exists():
                                 target_workspace_path = resolved
-                                # Clear stale scenario-owned outputs (e.g. outputs/
-                                # from a prior aborted/manual run) BEFORE the snapshot
-                                # so the snapshot is a clean baseline and the
-                                # post-grade restore keeps it clean across trials.
-                                _clear_scenario_owned_target_paths(scenario, resolved)
+                                # Snapshot the target's REAL workspace FIRST as a
+                                # full baseline that includes any target-owned path
+                                # colliding with a scenario fixture name (e.g. an
+                                # existing logs/ or README.md). The clear below may
+                                # delete such collisions; because the snapshot
+                                # precedes the clear, the post-grade full restore
+                                # brings them back - no permanent loss.
                                 target_workspace_snapshot_dir = tempfile.TemporaryDirectory(
                                     prefix=f"openclawprobench_{scenario.scenario_id}_target_",
                                     dir=workspace_parent,
                                 )
                                 shutil.copytree(resolved, target_workspace_snapshot_dir.name, dirs_exist_ok=True)
+                                # THEN clear stale scenario-owned outputs (built-in
+                                # check paths + fixtures + declared expected_outputs)
+                                # so the agent must produce them fresh for grading.
+                                _clear_scenario_owned_target_paths(scenario, resolved)
                         live_result = self.live_harness.execute_turn(
                             model=model,
                             prompt=scenario.prompt,

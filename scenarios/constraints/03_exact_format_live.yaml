@@ -51,6 +51,7 @@ ideal_tool_sequence:
 - write
 workspace_files: []
 custom_check: constraints_03_exact_format_live.py
+expected_outputs: [release_status.txt]
 workspace_seed_dir: ../../datasets/frontier/constraints_03_enhanced/fixtures
 category: constraints
 description: 精确格式约束验证 - 重构版。使用 request.json 和 config.yaml 的闭环策略做出精确发布决策。

@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: tool_use_07_tool_chain_inference_live.py
+expected_outputs: [category_chain_report.json]
 difficulty: hard
 dimension: tool_use
 execution_mode: live

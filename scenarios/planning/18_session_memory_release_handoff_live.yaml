@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: incubating
 signal_source: workspace_live
 custom_check: planning_18_session_memory_release_handoff_live.py
+expected_outputs: [handoff.md]
 difficulty: hard
 dimension: planning
 execution_mode: live

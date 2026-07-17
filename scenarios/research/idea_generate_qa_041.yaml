@@ -23,6 +23,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: research/idea_generate_qa_041.py
+expected_outputs: [recommended-ideas.md]
 workspace_seed_dir: ../../datasets/research/idea_generate/qa_041/fixtures
 category: research_idea_generation
 description: Idea Generate QA-041

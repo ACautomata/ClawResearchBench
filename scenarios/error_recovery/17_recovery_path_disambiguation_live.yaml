@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: error_recovery_17_recovery_path_disambiguation_live.py
+expected_outputs: [recovery_path_decision.json]
 difficulty: hard
 dimension: error_recovery
 execution_mode: live

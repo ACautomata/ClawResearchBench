@@ -98,6 +98,7 @@ ideal_tool_sequence:
 - write
 workspace_seed_dir: ../../datasets/planning_08_uncertainty_reasoning/fixtures
 custom_check: planning_08_uncertainty_reasoning_live.py
+expected_outputs: [launch_decision.json]
 category: planning
 description: 基于市场、工程、财务、组合约束和支持 readiness 的 seeded 信息做不确定性发布决策。
 objective: 正确识别 full launch block 条件、pilot launch allow 条件、不确定性等级和净收益估算，给出唯一正确的 Q4 推荐。

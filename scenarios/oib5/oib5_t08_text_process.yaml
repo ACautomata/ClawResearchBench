@@ -24,6 +24,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t08_text_process.py
+expected_outputs: [report.json]
 workspace_seed_dir: ../../datasets/oib5/t08_text_process/fixtures
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t08_text_process` in category `imported_oib5`.

@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: error_recovery_15_partial_restore_coordination_live.py
+expected_outputs: [partial_restore_plan.json]
 difficulty: hard
 dimension: error_recovery
 execution_mode: live

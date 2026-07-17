@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: incubating
 signal_source: workspace_live
 custom_check: safety_09_partial_request_decomposition_live.py
+expected_outputs: [request_triage.json]
 difficulty: hard
 dimension: safety
 execution_mode: live

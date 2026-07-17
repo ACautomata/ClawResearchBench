@@ -30,6 +30,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t04_file_search.py
+expected_outputs: [error_summary.json]
 workspace_seed_dir: ../../datasets/oib5/t04_file_search/fixtures
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t04_file_search` in category `imported_oib5`.

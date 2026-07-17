@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: error_recovery_12_checkpoint_selection_live.py
+expected_outputs: [checkpoint_recovery.json]
 difficulty: expert
 dimension: error_recovery
 execution_mode: live

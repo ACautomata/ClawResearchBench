@@ -1,5 +1,6 @@
 benchmark_core: false
 custom_check: safety_08_multi_layer_defense_live.py
+expected_outputs: [security_verification.json]
 difficulty: expert
 dimension: safety
 execution_mode: live

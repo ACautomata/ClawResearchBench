@@ -968,9 +968,115 @@ class RunnerTests(unittest.TestCase):
             file_exists_check = next(c for c in trial.checks if c.check_type == "file_exists")
             # Stale file was cleared before grading and the turn never produced it.
             self.assertEqual(file_exists_check.earned, 0.0)
-            # Target's own contents persist; stale output is gone (clean baseline).
+            # Target's own contents persist. Snapshot-first means the original
+            # pre-trial stale file returns after grading; the earned=0 assertion
+            # above proves it was cleared at grade time, while restoration keeps
+            # the target workspace byte-for-byte faithful to its baseline.
             self.assertEqual((real_workspace / "SOUL.md").read_text(encoding="utf-8"), "soul")
-            self.assertFalse((real_workspace / "outputs" / "result.txt").exists())
+            self.assertEqual((real_workspace / "outputs" / "result.txt").read_text(encoding="utf-8"), "stale")
+
+    def test_clear_scenario_owned_paths_clears_declared_expected_outputs(self) -> None:
+        from harness.runner import _clear_scenario_owned_target_paths
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            real_workspace = root / "main_ws"
+            real_workspace.mkdir()
+            (real_workspace / "SOUL.md").write_text("soul", encoding="utf-8")
+            (real_workspace / "outputs").mkdir()
+            stale = real_workspace / "outputs" / "custom_result.json"
+            stale.write_text('{"stale": true}', encoding="utf-8")
+            scenario = _synthetic_live_scenario(
+                root,
+                scenario_id="declared_output",
+                dimension=Dimension.CONSTRAINTS,
+                difficulty=Difficulty.EASY,
+            )
+            scenario.expected_outputs = ["outputs/custom_result.json"]
+
+            _clear_scenario_owned_target_paths(scenario, real_workspace)
+
+            self.assertFalse(stale.exists())
+            self.assertEqual((real_workspace / "SOUL.md").read_text(encoding="utf-8"), "soul")
+
+    def test_target_mode_restores_seed_path_collision(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            real_workspace = root / "main_ws"
+            real_workspace.mkdir()
+            (real_workspace / "SOUL.md").write_text("soul", encoding="utf-8")
+            (real_workspace / "logs").mkdir()
+            (real_workspace / "logs" / "agent.log").write_text("target log", encoding="utf-8")
+            (real_workspace / "README.md").write_text("target readme", encoding="utf-8")
+            seed = root / "seed"
+            (seed / "logs").mkdir(parents=True)
+            (seed / "logs" / "scenario.log").write_text("scenario log", encoding="utf-8")
+            (seed / "README.md").write_text("scenario readme", encoding="utf-8")
+            runner = BenchmarkRunner(
+                results_dir=Path("results"),
+                execution_mode="live",
+                target_agent="main",
+                workspace_root=root,
+                show_progress=False,
+            )
+            scenario = _synthetic_live_scenario(
+                root,
+                scenario_id="seed_collision",
+                dimension=Dimension.CONSTRAINTS,
+                difficulty=Difficulty.EASY,
+            )
+            scenario.workspace_seed_dir = "seed"
+
+            def fake_execute_turn(**_kwargs: object) -> LiveRunResult:
+                return LiveRunResult(
+                    status="success",
+                    exit_code=0,
+                    workspace_path=str(real_workspace),
+                    agent_id="main",
+                    session_id="sid",
+                    trace={"events": [], "metrics": {}},
+                )
+
+            with (
+                mock.patch.object(runner.live_harness, "target_workspace_path", return_value=real_workspace),
+                mock.patch.object(runner.live_harness, "execute_turn", side_effect=fake_execute_turn),
+            ):
+                runner._run_trial_once(
+                    "mock/default",
+                    scenario,
+                    1,
+                    runner_module._normalize_pricing_block({}),
+                    execution_mode="live",
+                )
+
+            self.assertEqual((real_workspace / "logs" / "agent.log").read_text(encoding="utf-8"), "target log")
+            self.assertEqual((real_workspace / "README.md").read_text(encoding="utf-8"), "target readme")
+            self.assertEqual((real_workspace / "SOUL.md").read_text(encoding="utf-8"), "soul")
+
+    def test_sync_workspace_to_snapshot_replaces_type_conflicts(self) -> None:
+        from harness.runner import _sync_workspace_to_snapshot
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            snapshot = root / "snapshot"
+            workspace = root / "workspace"
+            snapshot.mkdir()
+            (snapshot / "SOUL.md").write_text("target soul", encoding="utf-8")
+            (snapshot / "skills").mkdir()
+            (snapshot / "skills" / "keep.md").write_text("skill", encoding="utf-8")
+            workspace.mkdir()
+            # File -> directory conflict.
+            (workspace / "SOUL.md").mkdir()
+            (workspace / "SOUL.md" / "junk").write_text("junk", encoding="utf-8")
+            # Directory -> file conflict.
+            (workspace / "skills").write_text("wrong type", encoding="utf-8")
+
+            _sync_workspace_to_snapshot(snapshot, workspace)
+
+            self.assertTrue((workspace / "SOUL.md").is_file())
+            self.assertEqual((workspace / "SOUL.md").read_text(encoding="utf-8"), "target soul")
+            self.assertTrue((workspace / "skills").is_dir())
+            self.assertEqual((workspace / "skills" / "keep.md").read_text(encoding="utf-8"), "skill")
 
     def test_clear_scenario_owned_paths_never_deletes_workspace_root(self) -> None:
         # A malformed scenario check whose path resolves to the workspace root

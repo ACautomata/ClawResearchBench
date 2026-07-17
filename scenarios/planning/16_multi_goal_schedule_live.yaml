@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: planning_16_multi_goal_schedule_live.py
+expected_outputs: [multi_goal_schedule.json]
 difficulty: expert
 dimension: planning
 execution_mode: live

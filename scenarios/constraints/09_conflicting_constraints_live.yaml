@@ -103,6 +103,7 @@ ideal_tool_sequence:
 - write
 workspace_seed_dir: ../../datasets/constraints_09_conflicting_constraints/fixtures
 custom_check: constraints_09_conflicting_constraints_live_v2.py
+expected_outputs: [upgrade_strategy.json]
 category: constraints
 description: 基于 seeded 升级请求、平台资源、客户端兼容性、安全修复要求和选项清单，生成唯一正确的 phased upgrade strategy。
 objective: 正确识别内存、兼容性、安全、预算和时限之间的冲突，选择唯一满足全部硬约束的 option，并输出 exact phased plan。

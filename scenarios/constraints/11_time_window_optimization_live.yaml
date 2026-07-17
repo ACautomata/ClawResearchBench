@@ -1,5 +1,6 @@
 benchmark_core: false
 custom_check: constraints_11_time_window_optimization_live.py
+expected_outputs: [time_allocation.json]
 difficulty: expert
 dimension: constraints
 execution_mode: live

@@ -26,6 +26,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: research/paper_ingest_pi_002.py
+expected_outputs: [wiki/domains/bench/papers/edge-reg.md]
 workspace_seed_dir: ../../datasets/research/paper_ingest/pi-002/fixtures
 category: research_paper_ingest
 description: Build a complete wiki entry from a deliberately sparse synthetic abstract without guessing.

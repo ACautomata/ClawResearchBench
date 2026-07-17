@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: planning_17_dependency_tradeoff_plan_live.py
+expected_outputs: [dependency_tradeoff_plan.json]
 difficulty: hard
 dimension: planning
 execution_mode: live

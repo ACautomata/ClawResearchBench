@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: incubating
 signal_source: workspace_live
 custom_check: constraints_21_memory_contamination_guard_live.py
+expected_outputs: [internal_update.md]
 difficulty: expert
 dimension: constraints
 execution_mode: live

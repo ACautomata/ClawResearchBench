@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: openclaw_native
 custom_check: error_recovery_26_duplicate_automation_suppression_live.py
+expected_outputs: [automation_suppression_plan.json]
 difficulty: expert
 dimension: error_recovery
 execution_mode: live

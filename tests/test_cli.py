@@ -497,6 +497,42 @@ class CliTests(unittest.TestCase):
         reserve_report_path.assert_called_once()
         self.assertEqual(kwargs["checkpoint_path"], fresh_path)
 
+    def test_opt_out_agent_uses_model_slug_for_continue_and_report(self) -> None:
+        args = run.build_parser().parse_args(
+            ["run", "--agent", "", "--model", "model/a", "--scenario", "stub_case", "--continue"]
+        )
+        fake_result = mock.Mock()
+        fake_result.summary = {"report_path": ""}
+        existing_path = Path("results/result_model_a_old.json")
+        existing_result = mock.Mock()
+        existing_result.model = "model/a"
+        existing_result.summary = {
+            "report_path": str(existing_path),
+            "progress": {"completed_scenarios": 0, "requested_scenarios": 1},
+        }
+        existing_result.scenarios = []
+        existing_result.total_scenarios = 1
+
+        with (
+            redirect_stdout(io.StringIO()),
+            mock.patch.object(run, "load_scenarios", return_value=[mock.sentinel.scenario]),
+            mock.patch.object(run, "_find_latest_report", return_value=existing_path) as find_latest,
+            mock.patch.object(run, "_load_existing_result", return_value=existing_result),
+            mock.patch.object(run, "reserve_report_path") as reserve_report_path,
+            mock.patch.object(run, "write_report", return_value=existing_path),
+            mock.patch.object(run, "print_summary"),
+            mock.patch.object(run, "BenchmarkRunner") as runner_cls,
+        ):
+            runner_cls.return_value.run_with_resume.return_value = fake_result
+            exit_code = args.func(args)
+
+        self.assertEqual(exit_code, 0)
+        # `--agent ''` opts out of target mode, so checkpoint lookup is scoped by
+        # model (pre-target-mode behavior), never the shared empty `result__` slug.
+        self.assertEqual(find_latest.call_args.args[1], "model/a")
+        reserve_report_path.assert_not_called()
+        self.assertEqual(runner_cls.call_args.kwargs["target_agent"], "")
+
     def test_run_command_agent_defaults_to_main_and_model_optional(self) -> None:
         args = run.build_parser().parse_args(["run"])
 
