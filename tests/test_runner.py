@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from harness.live_harness import LivePreflightResult, LiveRunResult
+from harness.live_harness import LivePreflightResult, LiveRunResult, OpenClawLiveHarness
 from harness.loader import load_scenarios
 from harness.models import (
     BenchmarkGroup,
@@ -726,6 +726,7 @@ class RunnerTests(unittest.TestCase):
 
             with (
                 mock.patch.object(runner.live_harness, "preflight", return_value=preflight),
+                mock.patch.object(runner.live_harness, "read_primary_model", return_value=None),
                 mock.patch.object(BenchmarkRunner, "_run_trial", autospec=True, side_effect=fake_run_trial),
             ):
                 result = runner.run(model="mock/default", scenarios=scenarios, trials=1)
@@ -774,6 +775,7 @@ class RunnerTests(unittest.TestCase):
 
             with (
                 mock.patch.object(runner.live_harness, "preflight", return_value=preflight),
+                mock.patch.object(runner.live_harness, "read_primary_model", return_value=None),
                 mock.patch.object(BenchmarkRunner, "_run_trial", autospec=True, side_effect=fake_run_trial),
             ):
                 result = runner.run(model="mock/default", scenarios=scenarios, trials=1)
@@ -854,6 +856,121 @@ class RunnerTests(unittest.TestCase):
             self.assertFalse((real_workspace / "outputs" / "result.txt").exists())
             # ... while the target's own contents persist.
             self.assertEqual((real_workspace / "SOUL.md").read_text(encoding="utf-8"), "soul")
+
+    def test_target_mode_rejects_isolated_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with self.assertRaisesRegex(ValueError, "must run against the default OpenClaw state"):
+                BenchmarkRunner(
+                    results_dir=Path("results"),
+                    execution_mode="live",
+                    target_agent="main",
+                    openclaw_state_dir=tmpdir,
+                    show_progress=False,
+                )
+
+    def test_target_mode_allows_non_isolated_state(self) -> None:
+        with mock.patch.object(OpenClawLiveHarness, "_uses_isolated_state", return_value=False):
+            runner = BenchmarkRunner(
+                results_dir=Path("results"),
+                execution_mode="live",
+                target_agent="main",
+                show_progress=False,
+            )
+        self.assertEqual(runner.target_agent, "main")
+
+    def test_target_mode_run_rejects_model_mismatching_configured(self) -> None:
+        with (
+            mock.patch.object(OpenClawLiveHarness, "_uses_isolated_state", return_value=False),
+            mock.patch.object(OpenClawLiveHarness, "read_primary_model", return_value="minimax/MiniMax-M3"),
+        ):
+            runner = BenchmarkRunner(
+                results_dir=Path("results"),
+                execution_mode="live",
+                target_agent="main",
+                show_progress=False,
+            )
+        with self.assertRaisesRegex(ValueError, "conflicts with target agent main's configured model"):
+            runner.run_with_resume(model="glm/GLM-5", scenarios=[], trials=1)
+
+    def test_target_mode_run_accepts_matching_configured_model(self) -> None:
+        with (
+            mock.patch.object(OpenClawLiveHarness, "_uses_isolated_state", return_value=False),
+            mock.patch.object(OpenClawLiveHarness, "read_primary_model", return_value="minimax/MiniMax-M3"),
+            mock.patch.object(BenchmarkRunner, "_run_pending_scenarios") as pending,
+        ):
+            pending.return_value = ({}, {}, None)
+            runner = BenchmarkRunner(
+                results_dir=Path("results"),
+                execution_mode="live",
+                target_agent="main",
+                show_progress=False,
+            )
+            result = runner.run_with_resume(model="minimax/MiniMax-M3", scenarios=[], trials=1)
+        # Matching model does not raise the conflict error.
+        self.assertEqual(len(result.scenarios), 0)
+
+    def test_target_mode_clears_stale_outputs_before_grading(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            real_workspace = root / "main_ws"
+            real_workspace.mkdir()
+            (real_workspace / "SOUL.md").write_text("soul", encoding="utf-8")
+            # Stale output from a prior aborted/manual run - must NOT pass file_exists
+            # at grade time (the current turn never produced it), and must not survive.
+            (real_workspace / "outputs").mkdir(parents=True)
+            (real_workspace / "outputs" / "result.txt").write_text("stale", encoding="utf-8")
+            runner = BenchmarkRunner(
+                results_dir=Path("results"),
+                execution_mode="live",
+                target_agent="main",
+                workspace_root=root,
+                show_progress=False,
+            )
+            scenario = _synthetic_live_scenario(
+                root,
+                scenario_id="target_stale_clear",
+                dimension=Dimension.CONSTRAINTS,
+                difficulty=Difficulty.EASY,
+            )
+            scenario.checks = [
+                CheckSpec(
+                    check_id="output_exists",
+                    check_type="file_exists",
+                    points=1.0,
+                    category=CheckCategory.CORRECTNESS,
+                    config={"path": "outputs/result.txt"},
+                )
+            ]
+
+            def fake_execute_turn(**_kwargs: object) -> LiveRunResult:
+                # The agent did NOT produce outputs/result.txt this turn.
+                return LiveRunResult(
+                    status="success",
+                    exit_code=0,
+                    workspace_path=str(real_workspace),
+                    agent_id="main",
+                    session_id="sid",
+                    trace={"events": [], "metrics": {}},
+                )
+
+            with (
+                mock.patch.object(runner.live_harness, "target_workspace_path", return_value=real_workspace),
+                mock.patch.object(runner.live_harness, "execute_turn", side_effect=fake_execute_turn),
+            ):
+                trial = runner._run_trial_once(
+                    "mock/default",
+                    scenario,
+                    1,
+                    runner_module._normalize_pricing_block({}),
+                    execution_mode="live",
+                )
+
+            file_exists_check = next(c for c in trial.checks if c.check_type == "file_exists")
+            # Stale file was cleared before grading and the turn never produced it.
+            self.assertEqual(file_exists_check.earned, 0.0)
+            # Target's own contents persist; stale output is gone (clean baseline).
+            self.assertEqual((real_workspace / "SOUL.md").read_text(encoding="utf-8"), "soul")
+            self.assertFalse((real_workspace / "outputs" / "result.txt").exists())
 
     def test_live_parallel_run_backs_off_after_retry_pressure(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

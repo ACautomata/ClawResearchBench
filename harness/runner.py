@@ -330,6 +330,57 @@ def _sync_workspace_to_snapshot(snapshot: Path, workspace: Path) -> None:
             path.rmdir()
 
 
+def _clear_scenario_owned_target_paths(scenario: Scenario, target_workspace: Path) -> None:
+    """Remove scenario-owned fixture/output paths from the target's real workspace.
+
+    In target-agent mode the agent runs in its configured workspace, where a prior
+    aborted/manual run may have left stale scenario outputs (e.g. ``outputs/...``).
+    The pre-staging snapshot would capture them, so the post-grade restore would
+    keep them and ``file_exists``/``file_contains`` checks could pass against stale
+    files the current turn never produced. Clearing scenario-owned paths BEFORE the
+    snapshot makes the snapshot a clean baseline (then restore keeps it clean
+    across trials).
+
+    Only scenario-owned paths are touched: ``file_exists``/``file_contains`` check
+    ``config['path']``, plus ``workspace_files`` dests and ``workspace_seed_dir``
+    top-level entries. The target agent's own contents (SOUL.md, skills/) are never
+    in this set. A traversal guard (resolve + relative_to the workspace root) refuses
+    to clear paths that escape it (e.g. a scenario ``path`` of ``../../SOUL.md``).
+
+    Limitation: ``custom_check`` modules may read workspace paths dynamically and are
+    not enumerated statically; a custom check reading a stale file remains vulnerable.
+    """
+    owned: set[str] = set()
+    for check in scenario.checks:
+        if check.check_type in ("file_exists", "file_contains"):
+            path = check.config.get("path")
+            if isinstance(path, str) and path.strip():
+                owned.add(path.strip().lstrip("/"))
+    for item in scenario.workspace_files:
+        if isinstance(item, str):
+            owned.add(_default_workspace_dest(item))
+        elif isinstance(item, dict):
+            dest = item.get("dest") or item.get("path") or _default_workspace_dest(str(item.get("source", "")))
+            if isinstance(dest, str) and dest.strip():
+                owned.add(dest.strip().lstrip("/"))
+    if scenario.workspace_seed_dir:
+        seed_dir = _resolve_scenario_source(scenario, scenario.workspace_seed_dir)
+        if seed_dir.exists():
+            for entry in seed_dir.iterdir():
+                owned.add(entry.name)
+    root = target_workspace.resolve(strict=False)
+    for rel in owned:
+        candidate = (target_workspace / rel).resolve(strict=False)
+        try:
+            candidate.relative_to(root)  # refuse to escape the workspace root
+        except ValueError:
+            continue
+        if candidate.is_dir() and not candidate.is_symlink():
+            shutil.rmtree(candidate, ignore_errors=True)
+        elif candidate.exists() or candidate.is_symlink():
+            candidate.unlink(missing_ok=True)
+
+
 def _run_workspace_script(scenario: Scenario, script_path: str | None, workspace: Path) -> None:
     if not script_path:
         return
@@ -826,6 +877,22 @@ class BenchmarkRunner:
             agent_pool_size=parallelism if allow_live_parallelism and parallelism > 1 else 0,
             target_agent=self.target_agent,
         )
+        # Target-agent mode must run against the default OpenClaw state (spec #4
+        # isolation-safety: never turn isolation on for the target flow). A fresh
+        # isolated state has no existing target workspace and target mode never runs
+        # `agents add`, so live runs cannot stage fixtures - reject early at
+        # construction rather than crashing per-trial. `_uses_isolated_state()`
+        # compares resolved paths against the default, so pointing --openclaw-config-path
+        # at 颉姗's real config is still allowed (returns False).
+        if self.target_agent and self.live_harness._uses_isolated_state():
+            raise ValueError(
+                "target-agent mode (--agent <id>, default 'main') must run against the "
+                "default OpenClaw state; refuse to combine with isolation options "
+                "(--openclaw-profile / --openclaw-state-dir / --openclaw-config-path "
+                "resolving outside the default state). A throwaway isolated state has no "
+                "existing target workspace, and target mode never runs `agents add`. Drop "
+                "the isolation flags, or pass --agent '' to opt out of target mode."
+            )
         self._active_live_preflight: LivePreflightResult | None = None
 
     def close(self) -> None:
@@ -856,6 +923,17 @@ class BenchmarkRunner:
         benchmark_profile: str = "custom",
         checkpoint_path: Path | None = None,
     ) -> BenchmarkResult:
+        if self.target_agent:
+            # Target-agent mode runs the agent's configured model (`_agent_command`
+            # has no --model flag), so an explicit --model that differs would
+            # mislabel pricing/report/resume matching. Reject the mismatch.
+            configured = self.live_harness.read_primary_model()
+            if configured and _normalize_resume_model(configured) != _normalize_resume_model(model):
+                raise ValueError(
+                    f"--model {model} conflicts with target agent {self.target_agent}'s configured "
+                    f"model {configured}; target-agent mode runs the agent's configured model. "
+                    f"Omit --model or pass {configured}."
+                )
         pricing = _load_pricing(model)
         requested_ids = {scenario.scenario_id for scenario in scenarios}
         existing_by_id: dict[str, ScenarioResult] = {}
@@ -1622,6 +1700,11 @@ class BenchmarkRunner:
                             resolved = self.live_harness.target_workspace_path()
                             if resolved is not None and resolved.exists():
                                 target_workspace_path = resolved
+                                # Clear stale scenario-owned outputs (e.g. outputs/
+                                # from a prior aborted/manual run) BEFORE the snapshot
+                                # so the snapshot is a clean baseline and the
+                                # post-grade restore keeps it clean across trials.
+                                _clear_scenario_owned_target_paths(scenario, resolved)
                                 target_workspace_snapshot_dir = tempfile.TemporaryDirectory(
                                     prefix=f"openclawprobench_{scenario.scenario_id}_target_",
                                     dir=workspace_parent,

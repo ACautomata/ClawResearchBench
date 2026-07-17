@@ -76,6 +76,10 @@ def _resolve_run_model(args: argparse.Namespace) -> str:
 
     When ``--model`` is omitted, read ``agents.defaults.model.primary`` from the
     resolved openclaw.json (the target agent already owns its model there).
+
+    Validation that an explicit ``--model`` matches the target agent's configured
+    model happens in ``BenchmarkRunner.run_with_resume`` (target mode runs the
+    agent's configured model; ``_agent_command`` has no ``--model`` flag).
     """
     if getattr(args, "model", None):
         return str(args.model)

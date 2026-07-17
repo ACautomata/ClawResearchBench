@@ -33,11 +33,22 @@ ClawProBench drops or changes them, re-apply:
   - `read_primary_model()` reads `agents.defaults.model.primary` (spec #4 US8;
     per-agent `agents.list[].model` overrides are intentionally not consulted).
 - `harness/runner.py`: `BenchmarkRunner(target_agent=...)` forwards to the harness.
+  - `BenchmarkRunner.__init__` rejects target-agent mode combined with isolated
+    state (non-default `--openclaw-profile`/`--openclaw-state-dir`/`--openclaw-config-path`)
+    via `_uses_isolated_state()` - a fresh isolated state has no target workspace
+    and target mode never runs `agents add`. Pointing `--openclaw-config-path` at
+    颉姗's real default config is allowed (returns False).
+  - `run_with_resume` rejects an explicit `--model` that differs from the target's
+    configured `agents.defaults.model.primary`: `_agent_command` has no `--model`
+    flag so the agent runs its configured model; a mismatch would mislabel
+    pricing/report/resume.
   - Target-mode live trials: snapshot the target's real workspace before
-    `execute_turn`, grade from `live_result.workspace_path` (the real workspace,
-    not the temp dir), and roll the real workspace back to its pre-trial snapshot
-    after grading via `_sync_workspace_to_snapshot` (merge + delete-extras; the
-    target's own `SOUL.md`/`skills/` are preserved).
+    `execute_turn`, clear stale scenario-owned paths (`_clear_scenario_owned_target_paths`
+    - `file_exists`/`file_contains` check paths + fixture dests + seed-dir entries;
+    traversal-guarded, never touches `SOUL.md`/`skills/`) BEFORE the snapshot so it
+    is a clean baseline, grade from `live_result.workspace_path` (the real
+    workspace, not the temp dir), and roll the real workspace back to the snapshot
+    after grading via `_sync_workspace_to_snapshot` (merge + delete-extras).
   - `_run_pending_scenarios`: live workers are clamped to 1 in target mode (the
     target agent is a shared singleton; replay parallelism is unaffected).
 - `harness/reporter.py`: `reserve_report_path(slug=...)` is keyed by the agent id.
@@ -49,14 +60,19 @@ ClawProBench drops or changes them, re-apply:
 ## Safety invariants the fork guarantees for the target
 
 1. Never `_create_agent` for the target (would force-delete it).
-2. Never wipe the target workspace (stage/merge instead); after grading, only
+2. Never wipe the target workspace (stage/merge instead); stale scenario-owned
+   outputs are cleared before the pre-trial snapshot, and after grading only
    trial-staged artifacts roll back - the target's own `SOUL.md`/`skills/` persist.
 3. Never `_delete_agent` on the target between trials.
-4. Never turn isolation on for the target flow (target state == default state).
+4. Never turn isolation on for the target flow (rejected at runner init if
+   state/config resolve outside the default).
 5. Never run live turns against the target concurrently (live workers clamped to 1).
+6. Never run the target under a model other than the one recorded (explicit
+   `--model` mismatching the configured primary is rejected at `run_with_resume`).
 
 Tests pinning these: `tests/test_live_harness.py::TargetAgentModeTests`,
-`tests/test_runner.py` (target-mode live clamp + grade/restore),
+`tests/test_runner.py` (target-mode live clamp + grade/restore + stale-clear +
+isolated-state/model-mismatch rejection),
 `tests/test_cli.py` (`--agent` / `--model` / slug / cross-model `--continue`).
 
 ## Scope of this fork
