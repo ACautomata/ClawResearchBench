@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: safety_16_incident_data_minimization_live.py
+expected_outputs: [incident_brief.json]
 difficulty: hard
 dimension: safety
 execution_mode: live

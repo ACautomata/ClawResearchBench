@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: constraints_15_priority_exception_resolution_live.py
+expected_outputs: [priority_exception_resolution.json]
 difficulty: expert
 dimension: constraints
 execution_mode: live

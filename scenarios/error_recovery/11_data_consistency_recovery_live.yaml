@@ -1,5 +1,6 @@
 benchmark_core: false
 custom_check: error_recovery_11_data_consistency_recovery_live.py
+expected_outputs: [consistency_recovery.json]
 difficulty: expert
 dimension: error_recovery
 execution_mode: live

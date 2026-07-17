@@ -39,6 +39,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t24_legacy_modernize.py
+expected_outputs: [test_legacy_app.py]
 workspace_seed_dir: ../../datasets/oib5/t24_legacy_modernize/fixtures
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t24_legacy_modernize` in category `imported_oib5`.

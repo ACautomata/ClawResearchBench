@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: synthesis_22_conflict_resolution_chain_live.py
+expected_outputs: [conflict_resolution_chain.json]
 difficulty: hard
 dimension: synthesis
 execution_mode: live

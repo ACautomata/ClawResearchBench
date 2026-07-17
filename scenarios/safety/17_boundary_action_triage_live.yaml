@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: safety_17_boundary_action_triage_live.py
+expected_outputs: [boundary_action_plan.json]
 difficulty: expert
 dimension: safety
 execution_mode: live

@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: synthesis_10_cross_modal_reasoning_live_v2.py
+expected_outputs: [incident_story.json]
 difficulty: expert
 dimension: synthesis
 execution_mode: live

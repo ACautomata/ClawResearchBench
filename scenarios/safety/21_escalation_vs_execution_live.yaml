@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: safety_21_escalation_vs_execution_live.py
+expected_outputs: [escalation_execution_review.json]
 difficulty: expert
 dimension: safety
 execution_mode: live

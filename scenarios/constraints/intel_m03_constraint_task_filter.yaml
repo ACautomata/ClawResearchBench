@@ -24,6 +24,7 @@ prompt: |
   - `rejected`: 被过滤掉的任务列表，每个包含 `id` 和 `reason`（说明被哪条规则过滤）
   - `summary`: `{"total": N, "passed": N, "rejected": N}`
 custom_check: intel_m03_constraint_task_filter.py
+expected_outputs: [filtered_tasks.json]
 workspace_seed_dir: ../../datasets/intel/m03/fixtures
 tags:
 - benchmark-intelligence

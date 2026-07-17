@@ -52,6 +52,7 @@ workspace_files:
 
     '
 custom_check: planning_02_release_handoff_live.py
+expected_outputs: [handoff.md]
 category: planning
 description: Legacy benchmark scenario `planning_02_release_handoff_live` in category
   `planning`.

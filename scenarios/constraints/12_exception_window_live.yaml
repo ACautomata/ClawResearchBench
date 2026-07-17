@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: incubating
 signal_source: workspace_live
 custom_check: constraints_12_exception_window_live.py
+expected_outputs: [change_schedule.json]
 difficulty: expert
 dimension: constraints
 execution_mode: live

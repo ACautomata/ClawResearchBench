@@ -1,5 +1,6 @@
 benchmark_core: false
 custom_check: planning_12_resource_dependency_live.py
+expected_outputs: [resource_schedule.json]
 difficulty: expert
 dimension: planning
 execution_mode: live

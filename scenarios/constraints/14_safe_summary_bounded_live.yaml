@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: constraints_14_safe_summary_bounded_live.py
+expected_outputs: [safe_feedback_summary.md]
 difficulty: hard
 dimension: constraints
 execution_mode: live

@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: constraints_18_temporal_resource_exception_live.py
+expected_outputs: [temporal_resource_exception.json]
 difficulty: hard
 dimension: constraints
 execution_mode: live

@@ -356,6 +356,7 @@ class CliTests(unittest.TestCase):
         existing_path = Path("results/existing-complete.json")
         fresh_path = Path("results/fresh-rerun.json")
         existing_result = mock.Mock()
+        existing_result.model = "glm/GLM-5"
         existing_result.summary = {
             "report_path": str(existing_path),
             "progress": {"completed_scenarios": 1, "requested_scenarios": 1},
@@ -367,7 +368,7 @@ class CliTests(unittest.TestCase):
         with (
             redirect_stdout(buffer),
             mock.patch.object(run, "load_scenarios", return_value=[mock.sentinel.scenario]),
-            mock.patch.object(run, "_find_latest_report", return_value=existing_path),
+            mock.patch.object(run, "sorted_results_desc", return_value=[existing_path]),
             mock.patch.object(run, "_load_existing_result", return_value=existing_result),
             mock.patch.object(run, "reserve_report_path", return_value=fresh_path) as reserve_report_path,
             mock.patch.object(run, "write_report", return_value=fresh_path),
@@ -395,6 +396,7 @@ class CliTests(unittest.TestCase):
         fake_result.summary = {"report_path": ""}
         fresh_path = Path("results/fresh-rerun.json")
         existing_result = mock.Mock()
+        existing_result.model = "glm/GLM-5"
         existing_result.summary = {
             "report_path": str(existing_path),
             "progress": {"completed_scenarios": 1, "requested_scenarios": 1},
@@ -431,6 +433,7 @@ class CliTests(unittest.TestCase):
         fake_result.summary = {"report_path": ""}
         existing_path = Path("results/existing-incomplete.json")
         existing_result = mock.Mock()
+        existing_result.model = "glm/GLM-5"
         existing_result.summary = {
             "report_path": str(existing_path),
             "progress": {"completed_scenarios": 0, "requested_scenarios": 1},
@@ -441,7 +444,7 @@ class CliTests(unittest.TestCase):
         with (
             redirect_stdout(io.StringIO()),
             mock.patch.object(run, "load_scenarios", return_value=[mock.sentinel.scenario]),
-            mock.patch.object(run, "_find_latest_report", return_value=existing_path),
+            mock.patch.object(run, "sorted_results_desc", return_value=[existing_path]),
             mock.patch.object(run, "_load_existing_result", return_value=existing_result),
             mock.patch.object(run, "reserve_report_path") as reserve_report_path,
             mock.patch.object(run, "write_report", return_value=existing_path),
@@ -455,6 +458,140 @@ class CliTests(unittest.TestCase):
         kwargs = runner_cls.return_value.run_with_resume.call_args.kwargs
         self.assertEqual(kwargs["checkpoint_path"], existing_path)
         reserve_report_path.assert_not_called()
+
+    def test_continue_skips_cross_model_report(self) -> None:
+        args = run.build_parser().parse_args(
+            ["run", "--model", "glm/GLM-5", "--scenario", "stub_case", "--continue"]
+        )
+        fake_result = mock.Mock()
+        fake_result.summary = {"report_path": ""}
+        existing_path = Path("results/result_main_old.json")
+        fresh_path = Path("results/result_main_fresh.json")
+        existing_result = mock.Mock()
+        existing_result.model = "minimax/MiniMax-M3"
+        existing_result.summary = {
+            "report_path": str(existing_path),
+            "progress": {"completed_scenarios": 0, "requested_scenarios": 1},
+        }
+        existing_result.scenarios = []
+        existing_result.total_scenarios = 1
+
+        with (
+            redirect_stdout(io.StringIO()),
+            mock.patch.object(run, "load_scenarios", return_value=[mock.sentinel.scenario]),
+            mock.patch.object(run, "sorted_results_desc", return_value=[existing_path]),
+            mock.patch.object(run, "_load_existing_result", return_value=existing_result),
+            mock.patch.object(run, "reserve_report_path", return_value=fresh_path) as reserve_report_path,
+            mock.patch.object(run, "write_report", return_value=fresh_path),
+            mock.patch.object(run, "print_summary"),
+            mock.patch.object(run, "BenchmarkRunner") as runner_cls,
+        ):
+            runner_cls.return_value.run_with_resume.return_value = fake_result
+            exit_code = args.func(args)
+
+        self.assertEqual(exit_code, 0)
+        kwargs = runner_cls.return_value.run_with_resume.call_args.kwargs
+        # Cross-model: the prior report is not reused as a continuation source and a
+        # fresh report path is reserved (no overwrite of the old model's report).
+        self.assertIsNone(kwargs["existing_result"])
+        reserve_report_path.assert_called_once()
+        self.assertEqual(kwargs["checkpoint_path"], fresh_path)
+
+    def test_opt_out_agent_uses_model_slug_for_continue_and_report(self) -> None:
+        args = run.build_parser().parse_args(
+            ["run", "--agent", "", "--model", "model/a", "--scenario", "stub_case", "--continue"]
+        )
+        fake_result = mock.Mock()
+        fake_result.summary = {"report_path": ""}
+        existing_path = Path("results/result_model_a_old.json")
+        existing_result = mock.Mock()
+        existing_result.model = "model/a"
+        existing_result.summary = {
+            "report_path": str(existing_path),
+            "progress": {"completed_scenarios": 0, "requested_scenarios": 1},
+        }
+        existing_result.scenarios = []
+        existing_result.total_scenarios = 1
+
+        with (
+            redirect_stdout(io.StringIO()),
+            mock.patch.object(run, "load_scenarios", return_value=[mock.sentinel.scenario]),
+            mock.patch.object(run, "sorted_results_desc", return_value=[existing_path]) as find_latest,
+            mock.patch.object(run, "_load_existing_result", return_value=existing_result),
+            mock.patch.object(run, "reserve_report_path") as reserve_report_path,
+            mock.patch.object(run, "write_report", return_value=existing_path),
+            mock.patch.object(run, "print_summary"),
+            mock.patch.object(run, "BenchmarkRunner") as runner_cls,
+        ):
+            runner_cls.return_value.run_with_resume.return_value = fake_result
+            exit_code = args.func(args)
+
+        self.assertEqual(exit_code, 0)
+        # `--agent ''` opts out of target mode, so checkpoint lookup is scoped by
+        # model slug (pre-target-mode behavior), never the shared empty `result__` slug.
+        self.assertEqual(find_latest.call_args.args[1], "model/a")
+        reserve_report_path.assert_not_called()
+        self.assertEqual(runner_cls.call_args.kwargs["target_agent"], "")
+
+    def test_run_command_agent_defaults_to_main_and_model_optional(self) -> None:
+        args = run.build_parser().parse_args(["run"])
+
+        self.assertEqual(args.agent, "main")
+        self.assertIsNone(args.model)
+
+    def test_run_command_accepts_explicit_agent(self) -> None:
+        args = run.build_parser().parse_args(["run", "--agent", "reviewer", "--model", "glm/GLM-5"])
+
+        self.assertEqual(args.agent, "reviewer")
+        self.assertEqual(args.model, "glm/GLM-5")
+
+    def test_resolve_run_model_returns_explicit_model(self) -> None:
+        args = run.build_parser().parse_args(["run", "--model", "glm/GLM-5"])
+
+        self.assertEqual(run._resolve_run_model(args), "glm/GLM-5")
+
+    def test_resolve_run_model_reads_primary_when_omitted(self) -> None:
+        args = run.build_parser().parse_args(["run"])
+        with mock.patch.object(run, "OpenClawLiveHarness") as harness_cls:
+            harness_cls.return_value.read_primary_model.return_value = "minimax/MiniMax-M3"
+
+            self.assertEqual(run._resolve_run_model(args), "minimax/MiniMax-M3")
+
+        harness_cls.assert_called_once()
+
+    def test_resolve_run_model_raises_when_primary_absent(self) -> None:
+        args = run.build_parser().parse_args(["run"])
+        with mock.patch.object(run, "OpenClawLiveHarness") as harness_cls:
+            harness_cls.return_value.read_primary_model.return_value = None
+            with self.assertRaisesRegex(ValueError, "--model is required"):
+                run._resolve_run_model(args)
+
+    def test_cmd_run_passes_target_agent_and_uses_agent_slug(self) -> None:
+        args = run.build_parser().parse_args(
+            ["run", "--model", "glm/GLM-5", "--scenario", "stub_case", "--trials", "1"]
+        )
+        fake_result = mock.Mock()
+        fake_result.summary = {"report_path": ""}
+        buffer = io.StringIO()
+
+        with (
+            redirect_stdout(buffer),
+            mock.patch.object(run, "load_scenarios", return_value=[mock.sentinel.scenario]),
+            mock.patch.object(run, "reserve_report_path", return_value=Path("results/fake.json")) as reserve_report_path,
+            mock.patch.object(run, "write_report", return_value=Path("results/fake.json")),
+            mock.patch.object(run, "print_summary"),
+            mock.patch.object(run, "BenchmarkRunner") as runner_cls,
+        ):
+            runner_cls.return_value.run_with_resume.return_value = fake_result
+            exit_code = args.func(args)
+
+        self.assertEqual(exit_code, 0)
+        # Result report slug is the agent id (main), not the model.
+        reserve_report_path.assert_called_once()
+        self.assertEqual(reserve_report_path.call_args.args[1], "main")
+        # Runner receives the target agent.
+        self.assertEqual(runner_cls.call_args.kwargs["target_agent"], "main")
+        self.assertIn("--agent main", buffer.getvalue())
 
 
 if __name__ == "__main__":

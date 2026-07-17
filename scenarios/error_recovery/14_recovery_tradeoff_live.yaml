@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: error_recovery_14_recovery_tradeoff_live.py
+expected_outputs: [recovery_tradeoff.json]
 difficulty: expert
 dimension: error_recovery
 execution_mode: live

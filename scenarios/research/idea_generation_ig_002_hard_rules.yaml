@@ -26,6 +26,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: research/idea_generation_ig_002.py
+expected_outputs: [recommended-ideas.md]
 workspace_seed_dir: ../../datasets/research/idea_generation/ig-002/fixtures
 description: Generate evidence-grounded ideas from one synthetic paper under strict hard rules.
 objective: Produce recommendations with evidence, metric, risk, validation, and no unsupported claims.

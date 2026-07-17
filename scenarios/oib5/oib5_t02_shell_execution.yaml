@@ -43,6 +43,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t02_shell_execution.py
+expected_outputs: [stats.txt]
 workspace_seed_dir: ../../datasets/oib5/t02_shell_execution/fixtures
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t02_shell_execution` in category `imported_oib5`.

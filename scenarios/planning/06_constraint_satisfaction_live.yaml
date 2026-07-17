@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: planning_06_constraint_satisfaction.py
+expected_outputs: [schedule.json]
 difficulty: expert
 dimension: planning
 execution_mode: live

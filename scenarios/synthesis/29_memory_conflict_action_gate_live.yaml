@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: openclaw_native
 custom_check: synthesis_29_memory_conflict_action_gate_live.py
+expected_outputs: [memory_action_gate.json]
 difficulty: expert
 dimension: synthesis
 execution_mode: live

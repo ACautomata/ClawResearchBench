@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: tool_use_13_budgeted_code_audit_live.py
+expected_outputs: [audit_report.json]
 difficulty: expert
 dimension: tool_use
 execution_mode: live

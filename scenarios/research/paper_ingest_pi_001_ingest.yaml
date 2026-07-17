@@ -26,6 +26,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: research/paper_ingest_pi_001.py
+expected_outputs: [wiki/domains/bench/papers/benchingest.md, wiki/index.md, wiki/log.md]
 workspace_seed_dir: ../../datasets/research/paper_ingest/pi-001/fixtures
 description: Ingest a synthetic paper into a structured local wiki.
 objective: Create a complete 16-section paper page and update the wiki index and append-only log.

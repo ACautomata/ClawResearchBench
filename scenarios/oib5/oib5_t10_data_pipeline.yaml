@@ -28,6 +28,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t10_data_pipeline.py
+expected_outputs: [analysis.py, category_sales.json, monthly_orders.csv, user_ltv.csv]
 workspace_seed_dir: ../../datasets/oib5/t10_data_pipeline/fixtures
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t10_data_pipeline` in category `imported_oib5`.

@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: openclaw_native
 custom_check: constraints_19_cron_conflict_buffer_live.py
+expected_outputs: [cron_decision.json]
 difficulty: hard
 dimension: constraints
 execution_mode: live

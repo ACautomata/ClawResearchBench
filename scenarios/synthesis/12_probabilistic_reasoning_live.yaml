@@ -1,5 +1,6 @@
 benchmark_core: false
 custom_check: synthesis_12_probabilistic_reasoning_live.py
+expected_outputs: [probabilistic_decision.json]
 difficulty: expert
 dimension: synthesis
 execution_mode: live

@@ -19,6 +19,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: constraints_05_release_gate_live.py
+expected_outputs: [release_decision.json]
 workspace_seed_dir: ../../datasets/frontier/constraints_05_release_gate_live/fixtures
 category: frontier_constraints
 description: Evaluate release readiness under interacting approval, freeze-window, and staffing constraints.

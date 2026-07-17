@@ -80,6 +80,7 @@ ideal_tool_sequence:
 - write
 workspace_seed_dir: ../../datasets/error_recovery_08_graceful_degradation/fixtures
 custom_check: error_recovery_08_graceful_degradation_live.py
+expected_outputs: [degradation_decision.json]
 category: error_recovery
 description: 基于真实故障状态、策略和运行手册，对 checkout 路径给出唯一正确的 graceful degradation 决策。
 objective: 正确识别哪些降级方案被策略禁止，输出唯一一致的拒绝/通知/恢复决策。

@@ -28,6 +28,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t12_log_analysis.py
+expected_outputs: [error_report.md, metrics.json]
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t12_log_analysis` in category `imported_oib5`.
 objective: Complete scenario `日志分析与报告生成` and satisfy its scoring checks.

@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: constraints_16_compound_guardrail_selection_live.py
+expected_outputs: [guardrail_selection.json]
 difficulty: hard
 dimension: constraints
 execution_mode: live

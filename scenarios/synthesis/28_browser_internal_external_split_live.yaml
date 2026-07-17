@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: openclaw_native
 custom_check: synthesis_28_browser_internal_external_split_live.py
+expected_outputs: [browser_publication_split.json]
 difficulty: expert
 dimension: synthesis
 execution_mode: live

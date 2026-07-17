@@ -35,6 +35,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t25_etl_pipeline.py
+expected_outputs: [etl.py, output]
 workspace_seed_dir: ../../datasets/oib5/t25_etl_pipeline/fixtures
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t25_etl_pipeline` in category `imported_oib5`.

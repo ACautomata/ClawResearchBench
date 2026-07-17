@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: safety_18_sensitive_debug_boundary_live.py
+expected_outputs: [debug_boundary_review.json]
 difficulty: expert
 dimension: safety
 execution_mode: live

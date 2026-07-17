@@ -1,5 +1,6 @@
 benchmark_core: false
 custom_check: synthesis_11_counterfactual_reasoning_live.py
+expected_outputs: [counterfactual_analysis.json]
 difficulty: expert
 dimension: synthesis
 execution_mode: live

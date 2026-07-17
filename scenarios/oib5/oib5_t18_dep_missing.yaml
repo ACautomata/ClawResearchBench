@@ -41,6 +41,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t18_dep_missing.py
+expected_outputs: [result.json]
 workspace_seed_dir: ../../datasets/oib5/t18_dep_missing/fixtures
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t18_dep_missing` in category `imported_oib5`.

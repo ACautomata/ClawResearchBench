@@ -30,6 +30,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t11_multi_refactor.py
+expected_outputs: [common.py]
 workspace_seed_dir: ../../datasets/oib5/t11_multi_refactor/fixtures
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t11_multi_refactor` in category `imported_oib5`.

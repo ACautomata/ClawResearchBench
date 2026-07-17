@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: openclaw_native
 custom_check: tool_use_21_recurring_cron_expiry_notice_live.py
+expected_outputs: [cron_monitor_plan.json]
 difficulty: hard
 dimension: tool_use
 execution_mode: live

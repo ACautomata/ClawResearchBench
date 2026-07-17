@@ -1,5 +1,6 @@
 benchmark_core: false
 custom_check: error_recovery_09_cascade_prediction_live.py
+expected_outputs: [cascade_prediction.json]
 difficulty: expert
 dimension: error_recovery
 execution_mode: live

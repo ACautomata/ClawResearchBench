@@ -3,6 +3,7 @@ benchmark_group: coverage
 benchmark_status: incubating
 signal_source: workspace_live
 custom_check: planning_10_multi_objective_optimization_live_v2.py
+expected_outputs: [optimization_decision.md]
 difficulty: expert
 dimension: planning
 execution_mode: live

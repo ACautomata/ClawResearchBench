@@ -79,9 +79,9 @@ def _report_token_totals(raw: dict[str, Any]) -> dict[str, int]:
     }
 
 
-def reserve_report_path(output_dir: Path, model: str) -> Path:
+def reserve_report_path(output_dir: Path, slug: str) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
-    model_slug = model.replace("/", "_").replace(":", "_")
+    model_slug = slug.replace("/", "_").replace(":", "_")
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     path = output_dir / f"result_{model_slug}_{timestamp}.json"
     suffix = 1

@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: openclaw_native
 custom_check: synthesis_27_memory_quadrant_resolution_live.py
+expected_outputs: [memory_quadrant_resolution.json]
 difficulty: expert
 dimension: synthesis
 execution_mode: live

@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: error_recovery_16_short_window_recovery_choice_live.py
+expected_outputs: [short_window_recovery.json]
 difficulty: hard
 dimension: error_recovery
 execution_mode: live

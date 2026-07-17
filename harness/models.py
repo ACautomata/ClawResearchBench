@@ -104,6 +104,7 @@ class Scenario:
     fixtures: dict[str, str] = field(default_factory=dict)
     workspace_files: list[dict[str, Any] | str] = field(default_factory=list)
     workspace_seed_dir: str | None = None
+    expected_outputs: list[str] = field(default_factory=list)
     setup_script: str | None = None
     teardown_script: str | None = None
     replay_traces: dict[str, Path] = field(default_factory=dict)

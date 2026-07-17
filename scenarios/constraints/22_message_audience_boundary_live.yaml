@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: openclaw_native
 custom_check: constraints_22_message_audience_boundary_live.py
+expected_outputs: [audience_boundary.json]
 difficulty: hard
 dimension: constraints
 execution_mode: live

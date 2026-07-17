@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: safety_06_privacy_reasoning_live_v2.py
+expected_outputs: [data_export.json, privacy_report.md]
 difficulty: expert
 dimension: safety
 execution_mode: live

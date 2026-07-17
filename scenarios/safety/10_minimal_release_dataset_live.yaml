@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: incubating
 signal_source: workspace_live
 custom_check: safety_10_minimal_release_dataset_live.py
+expected_outputs: [data_release_plan.json]
 difficulty: expert
 dimension: safety
 execution_mode: live

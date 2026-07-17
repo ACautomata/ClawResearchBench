@@ -126,10 +126,12 @@ class OpenClawLiveHarness:
         progress_callback: Callable[[str], None] | None = None,
         progress_interval_seconds: int = 60,
         agent_pool_size: int = 0,
+        target_agent: str | None = None,
     ) -> None:
         self.openclaw_bin = openclaw_bin
         self.cleanup_agents = cleanup_agents
         self.use_local_agent = use_local_agent
+        self.target_agent = str(target_agent or "").strip() or None
         self.openclaw_profile = str(openclaw_profile or "").strip() or None
         self.openclaw_state_dir = str(openclaw_state_dir or "").strip() or None
         self.openclaw_config_path = str(openclaw_config_path or "").strip() or None
@@ -368,7 +370,8 @@ class OpenClawLiveHarness:
         repair_workspace: Callable[[Path], None] | None = None,
         use_local_agent: bool | None = None,
     ) -> LiveRunResult:
-        agent_id = self._make_agent_id(model)
+        target_mode = self._is_target_agent_mode()
+        agent_id = self.target_agent if target_mode else self._make_agent_id(model)
         execution_workspace = workspace_path
         pool_slot: AgentPoolSlot | None = None
         runtime_harness: OpenClawLiveHarness = self
@@ -396,8 +399,29 @@ class OpenClawLiveHarness:
             "repair_attempts": [],
         }
 
+        # Target-agent mode: stage scenario fixtures into the target's REAL
+        # workspace before the agent runs. _agent_command passes no --workspace,
+        # so `openclaw agent --agent <id>` runs against the target's configured
+        # workspace - where the prompt must read materials/ and write outputs/.
+        # Merge (no wipe) so the target's own SOUL.md/skills/ persist; the runner
+        # snapshots+restores this workspace around the trial. Done before the
+        # try block so a missing target workspace fails fast rather than being
+        # swallowed into a soft "error" trial status.
+        if target_mode:
+            target_workspace = self.target_workspace_path()
+            if target_workspace is None or not target_workspace.exists():
+                raise RuntimeError(
+                    f"target-agent mode could not resolve an existing workspace for {agent_id!r}; "
+                    "cannot stage scenario fixtures into the real workspace"
+                )
+            self._stage_workspace_fixtures(workspace_path, target_workspace)
+            execution_workspace = target_workspace
+
         try:
-            pool_slot = self._acquire_agent_pool_slot(model)
+            # Target-agent mode never uses the agent pool: pooled slots create and
+            # delete throwaway agents and wipe/replace their workspaces, all of
+            # which would endanger the target agent (e.g. main/颖姗).
+            pool_slot = None if target_mode else self._acquire_agent_pool_slot(model)
             if pool_slot is not None:
                 execution_workspace = pool_slot.workspace_path
                 runtime_harness = pool_slot.harness or self
@@ -420,8 +444,20 @@ class OpenClawLiveHarness:
                 )
             else:
                 with self._agent_registry_lock:
-                    auth_copy_result = self._create_agent(agent_id, model, workspace_path)
-                    lifecycle_state = self._ensure_agent_ready(agent_id)
+                    if target_mode:
+                        # The target agent already exists and owns its workspace;
+                        # never call _create_agent (its first step is
+                        # `agents delete <id> --force`, which would destroy the
+                        # target, e.g. main/颖姗).
+                        auth_copy_result = AuthProfileCopyResult(
+                            source_exists=False,
+                            requested_providers=set(),
+                            reason="target_agent_reused",
+                        )
+                        lifecycle_state = self._ensure_agent_ready(agent_id)
+                    else:
+                        auth_copy_result = self._create_agent(agent_id, model, workspace_path)
+                        lifecycle_state = self._ensure_agent_ready(agent_id)
             workspace_guard["repair_attempts"].append(
                 self._guard_workspace_visibility(
                     execution_workspace,
@@ -450,7 +486,7 @@ class OpenClawLiveHarness:
             stdout, stderr = self._communicate_with_heartbeat(proc, timeout=timeout, agent_id=agent_id)
             stdout, stderr = self._clean_openclaw_command_streams(stdout, stderr)
             payload = self._parse_command_payload(stdout, stderr)
-            if self._is_unknown_agent_error(stderr, stdout, payload):
+            if not target_mode and self._is_unknown_agent_error(stderr, stdout, payload):
                 with runtime_harness._agent_registry_lock:
                     auth_copy_result = runtime_harness._create_agent(agent_id, model, execution_workspace)
                     pooled_runtime_agent_created = pooled_runtime_agent_created or pool_slot is not None
@@ -584,7 +620,7 @@ class OpenClawLiveHarness:
             trace=trace,
             raw_transcript=raw_transcript,
             duration_seconds=duration,
-            workspace_path=str(workspace_path),
+            workspace_path=str(execution_workspace) if target_mode else str(workspace_path),
             agent_id=agent_id,
             session_id=resolved_session_id,
         )
@@ -672,6 +708,11 @@ class OpenClawLiveHarness:
         return f"ocb6-{slug}-pool-{state_token}-{index}"
 
     def _replace_workspace_contents(self, source: Path, target: Path) -> None:
+        # Target-agent mode must never wipe the target workspace (e.g. 颖姗's
+        # SOUL.md/skills/). Stage fixtures by merging instead of replacing.
+        if self._is_target_agent_mode():
+            self._stage_workspace_fixtures(source, target)
+            return
         source = source.resolve(strict=False)
         target = target.resolve(strict=False)
         if source == target:
@@ -684,6 +725,22 @@ class OpenClawLiveHarness:
                 shutil.rmtree(child)
             else:
                 child.unlink()
+        shutil.copytree(source, target, dirs_exist_ok=True)
+
+    def _stage_workspace_fixtures(self, source: Path, target: Path) -> None:
+        """Merge ``source`` into ``target`` without removing existing siblings.
+
+        Used in target-agent mode so scenario fixtures land in the target
+        workspace's expected subpaths (e.g. materials/, outputs/) while the
+        target's own contents (SOUL.md, skills/) are preserved.
+        """
+        source = source.resolve(strict=False)
+        target = target.resolve(strict=False)
+        if source == target:
+            return
+        if not source.exists():
+            raise FileNotFoundError(source)
+        target.mkdir(parents=True, exist_ok=True)
         shutil.copytree(source, target, dirs_exist_ok=True)
 
     def _guard_workspace_visibility(
@@ -729,6 +786,9 @@ class OpenClawLiveHarness:
 
     def delete_agent(self, agent_id: str) -> None:
         if not agent_id:
+            return
+        if self._is_target_agent_mode() and agent_id == self.target_agent:
+            # Never delete the target agent (e.g. main/颖姗) between trials.
             return
         with self._agent_pool_lock:
             if agent_id in self._pooled_runtime_agent_ids:
@@ -854,6 +914,61 @@ class OpenClawLiveHarness:
         default_state = self._default_state_dir_path()
         default_config = self._default_config_path()
         return target_state != default_state or target_config != default_config
+
+    def _is_target_agent_mode(self) -> bool:
+        return self.target_agent is not None
+
+    def read_primary_model(self) -> str | None:
+        """Read ``agents.defaults.model.primary`` from the resolved openclaw.json.
+
+        Used by the CLI to auto-resolve ``--model`` when targeting an existing
+        agent (the target already owns its model in config). Returns None when
+        the config or the key is absent.
+
+        Per spec #4 (US8 + "Implementation Decisions"), ``agents.defaults.model.primary``
+        is the spec-mandated auto-resolve source. A per-agent ``agents.list[].model``
+        override is intentionally not consulted: the target agent ``main`` carries no
+        such field in real configs, and the report filename is keyed by agent id (not
+        model), so reading ``defaults.model.primary`` is correct and unambiguous.
+        """
+        payload = self._read_json_file(self._config_path())
+        if not isinstance(payload, dict):
+            return None
+        agents = payload.get("agents")
+        defaults = agents.get("defaults") if isinstance(agents, dict) else None
+        model = defaults.get("model") if isinstance(defaults, dict) else None
+        primary = model.get("primary") if isinstance(model, dict) else None
+        if not isinstance(primary, str):
+            return None
+        primary = primary.strip()
+        return primary or None
+
+    def target_workspace_path(self) -> Path | None:
+        """Resolve the target agent's configured workspace path.
+
+        Reads ``agents.list[<target_agent>].workspace`` from the resolved
+        openclaw.json (the authoritative path set at ``agents add --workspace``
+        time) and expands ``~`` against the harness home dir. Falls back to
+        ``<state_dir>/agents/<id>/workspace`` (the ``_agent_state_ready``
+        heuristic) when the config omits the field. Used by target-agent mode to
+        stage scenario fixtures into the workspace the agent actually runs in, and
+        by the runner to snapshot/restore/grade that workspace.
+        """
+        payload = self._read_json_file(self._config_path())
+        if isinstance(payload, dict):
+            agents = payload.get("agents")
+            entries = agents.get("list") if isinstance(agents, dict) else None
+            if isinstance(entries, list):
+                wanted = set(self._agent_id_candidates(self.target_agent or ""))
+                for entry in entries:
+                    if not isinstance(entry, dict):
+                        continue
+                    if wanted and not (wanted & self._agent_entry_candidates(entry)):
+                        continue
+                    raw = entry.get("workspace")
+                    if isinstance(raw, str) and raw.strip():
+                        return self._expand_configured_path(raw)
+        return self._agent_sessions_dir(self.target_agent or "").parent / "workspace"
 
     def _read_json_file(self, path: Path) -> dict[str, Any] | None:
         if not path.exists():
@@ -1603,6 +1718,8 @@ class OpenClawLiveHarness:
         return copy_result
 
     def _delete_agent(self, agent_id: str) -> None:
+        if self._is_target_agent_mode() and agent_id == self.target_agent:
+            return
         with self._agent_registry_lock:
             subprocess.run(
                 [self.openclaw_bin, "agents", "delete", agent_id, "--force"],

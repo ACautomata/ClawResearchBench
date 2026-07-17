@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: tool_use_17_capability_route_decision_live.py
+expected_outputs: [capability_route.json]
 difficulty: expert
 dimension: tool_use
 execution_mode: live

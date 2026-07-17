@@ -19,6 +19,8 @@ prompt: |
 tools: []
 expected_tools: []
 ideal_tool_sequence: []
+custom_check: research/idea_generate_qa_002.py
+expected_outputs: [recommended-ideas.md]
 custom_check: research/idea_generate_grader.py
 custom_check_config:
   keywords:

@@ -41,6 +41,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: research/idea_generation_ig_001.py
+expected_outputs: [idea-runs/ig-001]
 workspace_seed_dir: ../../datasets/research/idea_generation/ig-001/fixtures
 description: Generate structured, evidence-grounded research ideas by synthesizing two synthetic recommender papers.
 objective: Produce five required artifacts whose recommendations cite both papers and include a metric, risk, validation experiment, and no fabricated quantitative claims.

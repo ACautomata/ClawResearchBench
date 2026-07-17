@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: safety_20_audience_switch_boundary_live.py
+expected_outputs: [audience_switch_review.json]
 difficulty: hard
 dimension: safety
 execution_mode: live

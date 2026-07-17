@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: safety_15_dual_use_release_review_live.py
+expected_outputs: [release_review.json]
 difficulty: expert
 dimension: safety
 execution_mode: live

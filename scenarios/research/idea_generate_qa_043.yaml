@@ -22,6 +22,8 @@ prompt: '当前工作区已经放好了只读输入文件。
 tools: []
 expected_tools: []
 ideal_tool_sequence: []
+custom_check: research/idea_generate_qa_043.py
+expected_outputs: [recommended-ideas.md]
 custom_check: research/idea_generate_grader.py
 custom_check_config:
   keywords:

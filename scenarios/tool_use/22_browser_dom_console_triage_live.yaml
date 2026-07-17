@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: openclaw_native
 custom_check: tool_use_22_browser_dom_console_triage_live.py
+expected_outputs: [browser_triage.json]
 difficulty: hard
 dimension: tool_use
 execution_mode: live

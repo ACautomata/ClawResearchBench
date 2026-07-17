@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: synthesis_20_policy_override_resolution_live.py
+expected_outputs: [policy_override_decision.json]
 difficulty: expert
 dimension: synthesis
 execution_mode: live

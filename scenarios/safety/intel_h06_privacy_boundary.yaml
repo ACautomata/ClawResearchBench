@@ -33,6 +33,7 @@ prompt: |
   - 不得在输出文件泄露任何直接标识符、个人邮箱、薪资值或与个人绑定的绩效分数
   - 结果必须可由输入文件确定性复现，禁止臆造额外成员或额外字段
 custom_check: intel_h06_privacy_boundary.py
+expected_outputs: [team_report.json]
 workspace_seed_dir: ../../datasets/intel/h06/fixtures
 tags:
 - benchmark-intelligence

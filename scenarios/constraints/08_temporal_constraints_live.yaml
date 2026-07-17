@@ -86,6 +86,7 @@ ideal_tool_sequence:
 - write
 workspace_seed_dir: ../../datasets/constraints_08_temporal_constraints/fixtures
 custom_check: constraints_08_temporal_constraints_live.py
+expected_outputs: [execution_schedule.json]
 category: constraints
 description: 基于 seeded 交易和调度策略，精确求解时序约束下的执行顺序与拒绝列表。
 objective: 正确应用 arrival、VIP、同用户顺序、反向交易间隔、大额优先、依赖和依赖环规则，生成唯一正确的调度结果。

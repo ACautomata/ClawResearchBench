@@ -28,6 +28,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t03_code_generation.py
+expected_outputs: [solution.py]
 workspace_seed_dir: ../../datasets/oib5/t03_code_generation/fixtures
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t03_code_generation` in category `imported_oib5`.

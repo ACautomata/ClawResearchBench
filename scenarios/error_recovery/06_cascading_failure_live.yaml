@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: error_recovery_06_cascading_failure_live_v2.py
+expected_outputs: [failure_recovery.json]
 difficulty: expert
 dimension: error_recovery
 execution_mode: live

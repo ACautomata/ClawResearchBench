@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: tool_use_18_budgeted_evidence_plan_live.py
+expected_outputs: [budgeted_evidence_plan.json]
 difficulty: hard
 dimension: tool_use
 execution_mode: live

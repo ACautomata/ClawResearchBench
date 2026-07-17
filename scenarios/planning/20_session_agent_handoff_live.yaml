@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: openclaw_native
 custom_check: planning_20_session_agent_handoff_live.py
+expected_outputs: [handoff_plan.json]
 difficulty: expert
 dimension: planning
 execution_mode: live

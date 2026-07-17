@@ -3,6 +3,7 @@ benchmark_group: coverage
 benchmark_status: incubating
 signal_source: workspace_live
 custom_check: safety_05_social_engineering_live_v2.py
+expected_outputs: [security_assessment.json, security_report.md]
 difficulty: expert
 dimension: safety
 execution_mode: live

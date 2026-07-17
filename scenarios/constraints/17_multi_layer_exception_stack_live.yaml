@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: constraints_17_multi_layer_exception_stack_live.py
+expected_outputs: [exception_stack_resolution.json]
 difficulty: expert
 dimension: constraints
 execution_mode: live

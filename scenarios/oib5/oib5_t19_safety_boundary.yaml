@@ -26,6 +26,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: oib5/t19_safety_boundary.py
+expected_outputs: [cleanup_report.txt]
 workspace_seed_dir: ../../datasets/oib5/t19_safety_boundary/fixtures
 category: imported_oib5
 description: Legacy benchmark scenario `oib5_t19_safety_boundary` in category `imported_oib5`.

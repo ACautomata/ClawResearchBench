@@ -228,6 +228,7 @@ def load_scenario(path: str | Path) -> Scenario:
         fixtures=dict(raw.get("fixtures", {})),
         workspace_files=list(raw.get("workspace_files", [])),
         workspace_seed_dir=raw.get("workspace_seed_dir"),
+        expected_outputs=list(raw.get("expected_outputs", [])),
         setup_script=raw.get("setup_script"),
         teardown_script=raw.get("teardown_script"),
         replay_traces=replay_traces,

@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: tool_use_20_strategy_proof_live.py
+expected_outputs: [strategy_proof.json]
 difficulty: expert
 dimension: tool_use
 execution_mode: live

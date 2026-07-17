@@ -93,6 +93,7 @@ ideal_tool_sequence:
 - write
 workspace_seed_dir: ../../datasets/planning_07_dynamic_resource_allocation/fixtures
 custom_check: planning_07_dynamic_resource_allocation_live_v2.py
+expected_outputs: [dynamic_allocation_plan.json]
 category: planning
 description: 基于 seeded 时间窗容量、任务目录、baseline service 和调度规则包，生成唯一正确的动态资源分配计划。
 objective: 正确处理 baseline reservation、容量波动、依赖解锁和最早可行启动规则，在固定 20 分钟窗口内最大化按时完成任务数。

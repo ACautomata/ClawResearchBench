@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: synthesis_13_incident_timeline_fusion_live.py
+expected_outputs: [incident_fusion.json]
 difficulty: expert
 dimension: synthesis
 execution_mode: live

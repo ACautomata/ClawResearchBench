@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: workspace_live
 custom_check: synthesis_21_counterfactual_support_split_live.py
+expected_outputs: [counterfactual_support.json]
 difficulty: expert
 dimension: synthesis
 execution_mode: live

@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: openclaw_native
 custom_check: synthesis_24_browser_message_reschedule_live.py
+expected_outputs: [reschedule_decision.json]
 difficulty: expert
 dimension: synthesis
 execution_mode: live

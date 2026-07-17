@@ -3,6 +3,7 @@ benchmark_group: intelligence
 benchmark_status: active
 signal_source: openclaw_native
 custom_check: error_recovery_20_browser_cron_message_orchestration_live.py
+expected_outputs: [orchestration_plan.json]
 difficulty: expert
 dimension: error_recovery
 execution_mode: live

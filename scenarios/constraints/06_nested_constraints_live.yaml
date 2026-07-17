@@ -57,6 +57,7 @@ tools: []
 expected_tools: []
 ideal_tool_sequence: []
 custom_check: constraints_06_nested_constraints_live.py
+expected_outputs: [decision.json]
 workspace_seed_dir: ../../datasets/frontier/constraints_06_nested_constraints_live/fixtures
 category: frontier_constraints
 description: 测试模型能否处理多层嵌套的约束条件，确保所有层次都被正确检查。
