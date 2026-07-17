@@ -1457,7 +1457,10 @@ class TargetAgentModeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             workspace = Path(tmpdir)
+            real_workspace = workspace / "real_ws"
+            real_workspace.mkdir()
             with (
+                mock.patch.object(harness, "target_workspace_path", return_value=real_workspace),
                 mock.patch.object(harness, "_create_agent") as create_agent,
                 mock.patch.object(harness, "_delete_agent") as delete_agent,
                 mock.patch.object(
@@ -1497,7 +1500,10 @@ class TargetAgentModeTests(unittest.TestCase):
         proc.returncode = 0
         with tempfile.TemporaryDirectory() as tmpdir:
             workspace = Path(tmpdir)
+            real_workspace = workspace / "real_ws"
+            real_workspace.mkdir()
             with (
+                mock.patch.object(harness, "target_workspace_path", return_value=real_workspace),
                 mock.patch.object(harness, "_create_agent") as create_agent,
                 mock.patch.object(harness, "_delete_agent"),
                 mock.patch.object(
@@ -1528,7 +1534,10 @@ class TargetAgentModeTests(unittest.TestCase):
         proc.returncode = 0
         with tempfile.TemporaryDirectory() as tmpdir:
             workspace = Path(tmpdir)
+            real_workspace = workspace / "real_ws"
+            real_workspace.mkdir()
             with (
+                mock.patch.object(harness, "target_workspace_path", return_value=real_workspace),
                 mock.patch.object(harness, "_acquire_agent_pool_slot") as acquire_slot,
                 mock.patch.object(harness, "_create_agent"),
                 mock.patch.object(harness, "_delete_agent"),
@@ -1616,6 +1625,115 @@ class TargetAgentModeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             harness = OpenClawLiveHarness(openclaw_state_dir=tmpdir)
             self.assertIsNone(harness.read_primary_model())
+
+    def test_target_mode_stages_fixtures_into_real_workspace(self) -> None:
+        harness = OpenClawLiveHarness(target_agent="main")
+        completed_stdout = '{"result": {"meta": {"agentMeta": {"sessionId": "sid"}}}}'
+        proc = mock.Mock()
+        proc.returncode = 0
+        transcript = [
+            {
+                "type": "message",
+                "message": {
+                    "role": "assistant",
+                    "content": [{"type": "text", "text": "done"}],
+                    "usage": {"input": 10, "output": 5, "totalTokens": 15},
+                },
+            }
+        ]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            real_workspace = root / "main_ws"
+            real_workspace.mkdir()
+            (real_workspace / "SOUL.md").write_text("soul", encoding="utf-8")
+            (real_workspace / "skills").mkdir()
+            (real_workspace / "skills" / "keep.md").write_text("keep", encoding="utf-8")
+            temp_workspace = root / "staged"
+            (temp_workspace / "materials").mkdir(parents=True)
+            (temp_workspace / "materials" / "paper.txt").write_text("paper", encoding="utf-8")
+            with (
+                mock.patch.object(harness, "target_workspace_path", return_value=real_workspace),
+                mock.patch.object(harness, "_create_agent"),
+                mock.patch.object(harness, "_delete_agent"),
+                mock.patch.object(
+                    harness, "_ensure_agent_ready", return_value={"ensure_ready_phase": "ready"}
+                ),
+                mock.patch("harness.live_harness.subprocess.Popen", return_value=proc) as popen,
+                mock.patch.object(
+                    harness, "_communicate_with_heartbeat", return_value=(completed_stdout, "")
+                ),
+                mock.patch.object(harness, "_wait_and_load_transcript", return_value=transcript),
+            ):
+                result = harness.execute_turn(
+                    model="minimax/MiniMax-M3",
+                    prompt="hello",
+                    workspace_path=temp_workspace,
+                    timeout=1,
+                )
+            # Fixtures staged into the real workspace's expected subpath.
+            self.assertEqual(
+                (real_workspace / "materials" / "paper.txt").read_text(encoding="utf-8"), "paper"
+            )
+            # The target's own contents persist (no wipe).
+            self.assertEqual((real_workspace / "SOUL.md").read_text(encoding="utf-8"), "soul")
+            self.assertTrue((real_workspace / "skills" / "keep.md").exists())
+            # The result reports the real workspace, not the temp dir, and the
+            # agent command runs there.
+            self.assertEqual(Path(result.workspace_path), real_workspace)
+            self.assertEqual(popen.call_args.kwargs["cwd"], str(real_workspace))
+
+    def test_target_mode_raises_when_target_workspace_missing(self) -> None:
+        harness = OpenClawLiveHarness(target_agent="main")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workspace = Path(tmpdir)
+            missing = workspace / "does_not_exist"
+            with (
+                mock.patch.object(harness, "target_workspace_path", return_value=missing),
+                mock.patch.object(harness, "_create_agent"),
+                mock.patch.object(harness, "_delete_agent"),
+                mock.patch.object(
+                    harness, "_ensure_agent_ready", return_value={"ensure_ready_phase": "ready"}
+                ),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "could not resolve an existing workspace"):
+                    harness.execute_turn(
+                        model="minimax/MiniMax-M3",
+                        prompt="hello",
+                        workspace_path=workspace,
+                        timeout=1,
+                    )
+
+    def test_target_workspace_path_reads_agents_list_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            harness = OpenClawLiveHarness(openclaw_state_dir=tmpdir, target_agent="main")
+            real_ws = Path(tmpdir) / "yingshan_ws"
+            real_ws.mkdir()
+            config_path = harness._config_path()
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "agents": {
+                            "defaults": {"model": {"primary": "minimax/MiniMax-M3"}},
+                            "list": [
+                                {"id": "main", "name": "颖姗", "workspace": str(real_ws)},
+                                {"id": "judge", "workspace": str(Path(tmpdir) / "judge_ws")},
+                            ],
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.assertEqual(harness.target_workspace_path(), real_ws.resolve())
+
+    def test_target_workspace_path_falls_back_to_state_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            harness = OpenClawLiveHarness(openclaw_state_dir=tmpdir, target_agent="main")
+            # No agents.list[].workspace in config -> state-dir derived fallback.
+            self.assertEqual(
+                harness.target_workspace_path(),
+                harness._agent_sessions_dir("main").parent / "workspace",
+            )
 
 
 if __name__ == "__main__":

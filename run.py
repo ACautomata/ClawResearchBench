@@ -19,7 +19,7 @@ from harness.benchmark_profiles import (
 from harness.loader import load_scenarios, results_root, summarize_scenarios
 from harness.models import BenchmarkResult
 from harness.reporter import compare_reports, print_comparison, print_summary, reserve_report_path, write_report
-from harness.runner import BenchmarkRunner
+from harness.runner import BenchmarkRunner, _normalize_resume_model
 from harness.live_harness import OpenClawLiveHarness
 from harness.scoring import SUPPORTED_CHECK_TYPES
 
@@ -271,6 +271,22 @@ def _run_common(args: argparse.Namespace) -> int:
         latest = _find_latest_report(results_dir, args.agent)
         if latest is not None:
             existing_result = _load_existing_result(latest)
+    # Reports are keyed by agent id, so the latest result_<agent>_*.json may have
+    # been produced by a different model (e.g. after the agent's primary model
+    # changed, or an explicit --model). BenchmarkRunner refuses to reuse its
+    # scenarios on model mismatch, but _run_common would otherwise still reuse
+    # its report path as the checkpoint and overwrite that prior run. Drop it and
+    # start a fresh report when the stored model differs from the requested one.
+    if (
+        existing_result is not None
+        and _normalize_resume_model(existing_result.model) != _normalize_resume_model(args.model)
+    ):
+        print(
+            "resume_skip: "
+            f"latest report model={existing_result.model} != requested model={args.model}; "
+            "starting fresh report"
+        )
+        existing_result = None
     existing_report_path = Path(existing_result.summary["report_path"]) if existing_result and existing_result.summary.get("report_path") else None
     preserve_completed_source = bool(existing_result and existing_report_path and _report_is_complete(existing_result))
     if preserve_completed_source:

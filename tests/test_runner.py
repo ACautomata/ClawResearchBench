@@ -740,6 +740,121 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(result.summary["parallel"]["live_pressure_rerun_count"], 0)
         self.assertFalse(result.summary["parallel"]["live_execution_serialized"])
 
+    def test_target_mode_clamps_live_workers_to_one(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scenarios = [
+                _synthetic_live_scenario(
+                    Path(tmpdir),
+                    scenario_id=f"target_clamp_{i}",
+                    dimension=Dimension.CONSTRAINTS,
+                    difficulty=Difficulty.EASY,
+                )
+                for i in range(3)
+            ]
+            runner = BenchmarkRunner(
+                results_dir=Path("results"),
+                execution_mode="live",
+                parallelism=3,
+                allow_live_parallelism=True,
+                target_agent="main",
+                show_progress=False,
+            )
+            preflight = LivePreflightResult(ok=True, exit_code=0, duration_seconds=0.1)
+
+            def fake_run_trial(
+                _runner: BenchmarkRunner,
+                model: str,
+                scenario: Scenario,
+                trial_id: int,
+                pricing: dict[str, float],
+            ) -> TrialResult:
+                del model, pricing, scenario
+                time.sleep(0.01)
+                return self._fake_trial_result(trial_id=trial_id, latency_ms=10.0, execution_mode="live")
+
+            with (
+                mock.patch.object(runner.live_harness, "preflight", return_value=preflight),
+                mock.patch.object(BenchmarkRunner, "_run_trial", autospec=True, side_effect=fake_run_trial),
+            ):
+                result = runner.run(model="mock/default", scenarios=scenarios, trials=1)
+
+        parallel = result.summary["parallel"]
+        self.assertEqual(parallel["live_workers"], 1)
+        self.assertEqual(parallel["live_initial_workers"], 1)
+        self.assertTrue(parallel["live_execution_serialized"])
+        self.assertTrue(parallel["live_workers_capped_for_target_mode"])
+
+    def test_target_mode_runner_grades_from_real_workspace_and_restores(self) -> None:
+        from harness import runner as runner_module
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            real_workspace = root / "main_ws"
+            real_workspace.mkdir()
+            (real_workspace / "SOUL.md").write_text("soul", encoding="utf-8")
+            runner = BenchmarkRunner(
+                results_dir=Path("results"),
+                execution_mode="live",
+                target_agent="main",
+                workspace_root=root,
+                show_progress=False,
+            )
+            scenario = _synthetic_live_scenario(
+                root,
+                scenario_id="target_grade",
+                dimension=Dimension.CONSTRAINTS,
+                difficulty=Difficulty.EASY,
+            )
+
+            def fake_execute_turn(**_kwargs: object) -> LiveRunResult:
+                # Simulate the harness staging a fixture + the agent writing an
+                # output into the real workspace, which execute_turn reports.
+                (real_workspace / "materials").mkdir(parents=True, exist_ok=True)
+                (real_workspace / "materials" / "paper.txt").write_text("paper", encoding="utf-8")
+                (real_workspace / "outputs").mkdir(exist_ok=True)
+                (real_workspace / "outputs" / "result.txt").write_text("agent-output", encoding="utf-8")
+                return LiveRunResult(
+                    status="success",
+                    exit_code=0,
+                    workspace_path=str(real_workspace),
+                    agent_id="main",
+                    session_id="sid",
+                    trace={"events": [], "metrics": {}},
+                )
+
+            graded: list[Path] = []
+
+            def fake_grade_scenario(scenario: Scenario, workspace: Path, trace: dict) -> mock.Mock:
+                graded.append(Path(workspace))
+                return mock.Mock(
+                    final_score=1.0,
+                    capability_score=1.0,
+                    safety_passed=True,
+                    check_results=[],
+                    process_score=1.0,
+                    efficiency_score=1.0,
+                    efficiency_penalty=0.0,
+                    safety_failures=[],
+                )
+
+            with (
+                mock.patch.object(runner.live_harness, "target_workspace_path", return_value=real_workspace),
+                mock.patch.object(runner.live_harness, "execute_turn", side_effect=fake_execute_turn),
+                mock.patch.object(runner_module, "grade_scenario", side_effect=fake_grade_scenario),
+            ):
+                trial = runner._run_trial_once(
+                    "mock/default", scenario, 1, runner_module._normalize_pricing_block({}), execution_mode="live"
+                )
+
+            # Grader read the real workspace, not the temp dir.
+            self.assertEqual(graded, [real_workspace])
+            self.assertEqual(trial.workspace_path, str(real_workspace))
+            # Restore rolled back scenario-staged artifacts (materials/, outputs/) ...
+            self.assertFalse((real_workspace / "materials" / "paper.txt").exists())
+            self.assertFalse((real_workspace / "outputs" / "result.txt").exists())
+            # ... while the target's own contents persist.
+            self.assertEqual((real_workspace / "SOUL.md").read_text(encoding="utf-8"), "soul")
+
     def test_live_parallel_run_backs_off_after_retry_pressure(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             scenarios = [

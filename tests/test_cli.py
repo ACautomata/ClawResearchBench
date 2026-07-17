@@ -356,6 +356,7 @@ class CliTests(unittest.TestCase):
         existing_path = Path("results/existing-complete.json")
         fresh_path = Path("results/fresh-rerun.json")
         existing_result = mock.Mock()
+        existing_result.model = "glm/GLM-5"
         existing_result.summary = {
             "report_path": str(existing_path),
             "progress": {"completed_scenarios": 1, "requested_scenarios": 1},
@@ -395,6 +396,7 @@ class CliTests(unittest.TestCase):
         fake_result.summary = {"report_path": ""}
         fresh_path = Path("results/fresh-rerun.json")
         existing_result = mock.Mock()
+        existing_result.model = "glm/GLM-5"
         existing_result.summary = {
             "report_path": str(existing_path),
             "progress": {"completed_scenarios": 1, "requested_scenarios": 1},
@@ -431,6 +433,7 @@ class CliTests(unittest.TestCase):
         fake_result.summary = {"report_path": ""}
         existing_path = Path("results/existing-incomplete.json")
         existing_result = mock.Mock()
+        existing_result.model = "glm/GLM-5"
         existing_result.summary = {
             "report_path": str(existing_path),
             "progress": {"completed_scenarios": 0, "requested_scenarios": 1},
@@ -455,6 +458,44 @@ class CliTests(unittest.TestCase):
         kwargs = runner_cls.return_value.run_with_resume.call_args.kwargs
         self.assertEqual(kwargs["checkpoint_path"], existing_path)
         reserve_report_path.assert_not_called()
+
+    def test_continue_skips_cross_model_report(self) -> None:
+        args = run.build_parser().parse_args(
+            ["run", "--model", "glm/GLM-5", "--scenario", "stub_case", "--continue"]
+        )
+        fake_result = mock.Mock()
+        fake_result.summary = {"report_path": ""}
+        existing_path = Path("results/result_main_old.json")
+        fresh_path = Path("results/result_main_fresh.json")
+        existing_result = mock.Mock()
+        existing_result.model = "minimax/MiniMax-M3"
+        existing_result.summary = {
+            "report_path": str(existing_path),
+            "progress": {"completed_scenarios": 0, "requested_scenarios": 1},
+        }
+        existing_result.scenarios = []
+        existing_result.total_scenarios = 1
+
+        with (
+            redirect_stdout(io.StringIO()),
+            mock.patch.object(run, "load_scenarios", return_value=[mock.sentinel.scenario]),
+            mock.patch.object(run, "_find_latest_report", return_value=existing_path),
+            mock.patch.object(run, "_load_existing_result", return_value=existing_result),
+            mock.patch.object(run, "reserve_report_path", return_value=fresh_path) as reserve_report_path,
+            mock.patch.object(run, "write_report", return_value=fresh_path),
+            mock.patch.object(run, "print_summary"),
+            mock.patch.object(run, "BenchmarkRunner") as runner_cls,
+        ):
+            runner_cls.return_value.run_with_resume.return_value = fake_result
+            exit_code = args.func(args)
+
+        self.assertEqual(exit_code, 0)
+        kwargs = runner_cls.return_value.run_with_resume.call_args.kwargs
+        # Cross-model: the prior report is not reused as a continuation source and a
+        # fresh report path is reserved (no overwrite of the old model's report).
+        self.assertIsNone(kwargs["existing_result"])
+        reserve_report_path.assert_called_once()
+        self.assertEqual(kwargs["checkpoint_path"], fresh_path)
 
     def test_run_command_agent_defaults_to_main_and_model_optional(self) -> None:
         args = run.build_parser().parse_args(["run"])

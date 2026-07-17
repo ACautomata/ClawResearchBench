@@ -399,6 +399,24 @@ class OpenClawLiveHarness:
             "repair_attempts": [],
         }
 
+        # Target-agent mode: stage scenario fixtures into the target's REAL
+        # workspace before the agent runs. _agent_command passes no --workspace,
+        # so `openclaw agent --agent <id>` runs against the target's configured
+        # workspace - where the prompt must read materials/ and write outputs/.
+        # Merge (no wipe) so the target's own SOUL.md/skills/ persist; the runner
+        # snapshots+restores this workspace around the trial. Done before the
+        # try block so a missing target workspace fails fast rather than being
+        # swallowed into a soft "error" trial status.
+        if target_mode:
+            target_workspace = self.target_workspace_path()
+            if target_workspace is None or not target_workspace.exists():
+                raise RuntimeError(
+                    f"target-agent mode could not resolve an existing workspace for {agent_id!r}; "
+                    "cannot stage scenario fixtures into the real workspace"
+                )
+            self._stage_workspace_fixtures(workspace_path, target_workspace)
+            execution_workspace = target_workspace
+
         try:
             # Target-agent mode never uses the agent pool: pooled slots create and
             # delete throwaway agents and wipe/replace their workspaces, all of
@@ -602,7 +620,7 @@ class OpenClawLiveHarness:
             trace=trace,
             raw_transcript=raw_transcript,
             duration_seconds=duration,
-            workspace_path=str(workspace_path),
+            workspace_path=str(execution_workspace) if target_mode else str(workspace_path),
             agent_id=agent_id,
             session_id=resolved_session_id,
         )
@@ -906,6 +924,12 @@ class OpenClawLiveHarness:
         Used by the CLI to auto-resolve ``--model`` when targeting an existing
         agent (the target already owns its model in config). Returns None when
         the config or the key is absent.
+
+        Per spec #4 (US8 + "Implementation Decisions"), ``agents.defaults.model.primary``
+        is the spec-mandated auto-resolve source. A per-agent ``agents.list[].model``
+        override is intentionally not consulted: the target agent ``main`` carries no
+        such field in real configs, and the report filename is keyed by agent id (not
+        model), so reading ``defaults.model.primary`` is correct and unambiguous.
         """
         payload = self._read_json_file(self._config_path())
         if not isinstance(payload, dict):
@@ -918,6 +942,33 @@ class OpenClawLiveHarness:
             return None
         primary = primary.strip()
         return primary or None
+
+    def target_workspace_path(self) -> Path | None:
+        """Resolve the target agent's configured workspace path.
+
+        Reads ``agents.list[<target_agent>].workspace`` from the resolved
+        openclaw.json (the authoritative path set at ``agents add --workspace``
+        time) and expands ``~`` against the harness home dir. Falls back to
+        ``<state_dir>/agents/<id>/workspace`` (the ``_agent_state_ready``
+        heuristic) when the config omits the field. Used by target-agent mode to
+        stage scenario fixtures into the workspace the agent actually runs in, and
+        by the runner to snapshot/restore/grade that workspace.
+        """
+        payload = self._read_json_file(self._config_path())
+        if isinstance(payload, dict):
+            agents = payload.get("agents")
+            entries = agents.get("list") if isinstance(agents, dict) else None
+            if isinstance(entries, list):
+                wanted = set(self._agent_id_candidates(self.target_agent or ""))
+                for entry in entries:
+                    if not isinstance(entry, dict):
+                        continue
+                    if wanted and not (wanted & self._agent_entry_candidates(entry)):
+                        continue
+                    raw = entry.get("workspace")
+                    if isinstance(raw, str) and raw.strip():
+                        return self._expand_configured_path(raw)
+        return self._agent_sessions_dir(self.target_agent or "").parent / "workspace"
 
     def _read_json_file(self, path: Path) -> dict[str, Any] | None:
         if not path.exists():

@@ -306,6 +306,30 @@ def _restore_workspace_from_snapshot(snapshot: Path, workspace: Path) -> None:
     shutil.copytree(snapshot, workspace, dirs_exist_ok=True)
 
 
+def _sync_workspace_to_snapshot(snapshot: Path, workspace: Path) -> None:
+    """Restore ``workspace`` to match ``snapshot`` (rollback a trial's mutations).
+
+    Unlike ``_restore_workspace_from_snapshot`` (merge-only), this also deletes
+    paths present in ``workspace`` but absent from ``snapshot`` so scenario-staged
+    artifacts are removed. Files unchanged since the snapshot are left untouched,
+    so the target agent's own contents (e.g. SOUL.md, skills/) are never wiped -
+    only trial-added/modified paths roll back.
+    """
+    if not snapshot.exists():
+        raise FileNotFoundError(f"Workspace snapshot not found: {snapshot}")
+    workspace.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(snapshot, workspace, dirs_exist_ok=True)
+    snapshot_files = {
+        p.relative_to(snapshot) for p in snapshot.rglob("*") if p.is_file()
+    }
+    for path in workspace.rglob("*"):
+        if path.is_file() and path.relative_to(workspace) not in snapshot_files:
+            path.unlink()
+    for path in sorted(workspace.rglob("*"), reverse=True):
+        if path.is_dir() and not any(path.iterdir()) and not (snapshot / path.relative_to(workspace)).exists():
+            path.rmdir()
+
+
 def _run_workspace_script(scenario: Scenario, script_path: str | None, workspace: Path) -> None:
     if not script_path:
         return
@@ -1161,7 +1185,18 @@ class BenchmarkRunner:
                 replay_scenarios.append(scenario)
 
         replay_workers = min(self.parallelism, len(replay_scenarios)) if replay_scenarios else 0
-        requested_live_workers = min(self.parallelism, len(live_scenarios)) if live_scenarios else 0
+        if live_scenarios and self.target_agent:
+            # Target-agent mode reuses a single shared agent (main/颉姗); concurrent
+            # live turns would race its sessions and real workspace. Serialize live
+            # runs (replay parallelism is unaffected - replays never touch the agent).
+            if self.parallelism > 1:
+                self._progress(
+                    "live-parallelism-capped reason=target_agent mode=live workers=1 "
+                    f"(target agent {self.target_agent} is a shared singleton)"
+                )
+            requested_live_workers = 1
+        else:
+            requested_live_workers = min(self.parallelism, len(live_scenarios)) if live_scenarios else 0
         started_count = completed_offset
         if replay_workers > 1:
             with ThreadPoolExecutor(max_workers=replay_workers) as executor:
@@ -1361,6 +1396,9 @@ class BenchmarkRunner:
             "live_scenarios": len(live_scenarios),
             "live_execution_serialized": bool(live_scenarios and live_initial_workers <= 1),
             "live_parallelism_enabled": bool(live_scenarios and self.allow_live_parallelism),
+            "live_workers_capped_for_target_mode": bool(
+                self.target_agent and live_scenarios and self.parallelism > 1
+            ),
             "live_retry_attempts": self.live_retry_attempts,
             "live_backoff_count": len(live_backoff_events),
             "live_pressure_rerun_count": pressure_rerun_count if live_scenarios else 0,
@@ -1549,6 +1587,8 @@ class BenchmarkRunner:
             _run_workspace_script(scenario, scenario.setup_script, workspace)
             live_result = None
             workspace_snapshot_dir: tempfile.TemporaryDirectory[str] | None = None
+            target_workspace_snapshot_dir: tempfile.TemporaryDirectory[str] | None = None
+            target_workspace_path: Path | None = None
             try:
                 trace: dict[str, Any]
                 execution = TrialExecution(mode=execution_mode)
@@ -1573,6 +1613,20 @@ class BenchmarkRunner:
                             def restore_workspace(target_workspace: Path, *, snapshot_dir: str = workspace_snapshot_dir.name) -> None:
                                 _restore_workspace_from_snapshot(Path(snapshot_dir), target_workspace)
 
+                        # Target-agent mode: snapshot the target's REAL workspace
+                        # before execute_turn stages scenario fixtures into it, so
+                        # the trial can be rolled back (preserving the target's own
+                        # SOUL.md/skills/) after grading. The repair callback above
+                        # re-stages fixtures into this workspace if disturbed.
+                        if self.target_agent:
+                            resolved = self.live_harness.target_workspace_path()
+                            if resolved is not None and resolved.exists():
+                                target_workspace_path = resolved
+                                target_workspace_snapshot_dir = tempfile.TemporaryDirectory(
+                                    prefix=f"openclawprobench_{scenario.scenario_id}_target_",
+                                    dir=workspace_parent,
+                                )
+                                shutil.copytree(resolved, target_workspace_snapshot_dir.name, dirs_exist_ok=True)
                         live_result = self.live_harness.execute_turn(
                             model=model,
                             prompt=scenario.prompt,
@@ -1626,7 +1680,15 @@ class BenchmarkRunner:
                 metrics["cost_estimate_usd"] = costs["total_cost_usd"]
                 trace["metrics"] = metrics
 
-                breakdown = grade_scenario(scenario, workspace, trace)
+                # Target-agent mode runs the agent in its real workspace (where
+                # execute_turn staged fixtures and the agent wrote outputs/); grade
+                # from there. Non-target mode is unchanged - live_result.workspace_path
+                # is the temp workspace there.
+                if execution_mode == "live" and live_result and live_result.workspace_path:
+                    grade_workspace = Path(live_result.workspace_path)
+                else:
+                    grade_workspace = workspace
+                breakdown = grade_scenario(scenario, grade_workspace, trace)
                 tool_calls = [event for event in trace.get("events", []) if event.get("type") == "tool_call"]
                 latency_ms = float(metrics.get("wall_time_s", metrics.get("duration_seconds", 0.0))) * 1000.0
                 passed = (
@@ -1661,11 +1723,20 @@ class BenchmarkRunner:
                     audit_state=dict(trace.get("audit_state", {})),
                     execution=execution,
                     safety_failures=list(breakdown.safety_failures),
-                    workspace_path=str(workspace),
+                    workspace_path=str(grade_workspace),
                 )
             finally:
+                if target_workspace_snapshot_dir is not None and target_workspace_path is not None:
+                    try:
+                        _sync_workspace_to_snapshot(
+                            Path(target_workspace_snapshot_dir.name), target_workspace_path
+                        )
+                    except Exception as exc:  # pragma: no cover - best-effort restore
+                        self._progress(f"target-workspace-restore-failed error={exc}")
                 if workspace_snapshot_dir is not None:
                     workspace_snapshot_dir.cleanup()
+                if target_workspace_snapshot_dir is not None:
+                    target_workspace_snapshot_dir.cleanup()
                 _run_workspace_script(scenario, scenario.teardown_script, workspace)
                 if execution_mode == "live" and live_result and self.live_harness.cleanup_agents:
                     self.live_harness.delete_agent(live_result.agent_id)
