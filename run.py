@@ -119,6 +119,13 @@ def _find_latest_report(results_dir: Path, model: str) -> Path | None:
     return matches[-1] if matches else None
 
 
+def sorted_results_desc(results_dir: Path, slug: str) -> list[Path]:
+    """Return slug-prefixed reports sorted newest-first by filename timestamp."""
+    prefix = f"result_{_model_slug(slug)}_"
+    matches = sorted(results_dir.glob(f"{prefix}*.json"), reverse=True)
+    return matches
+
+
 def _coerce_int(value: object, default: int) -> int:
     try:
         return int(value)
@@ -275,25 +282,24 @@ def _run_common(args: argparse.Namespace) -> int:
     if getattr(args, "resume_from", None):
         existing_result = _load_existing_result(Path(args.resume_from))
     elif getattr(args, "continue_run", False):
-        latest = _find_latest_report(results_dir, report_slug)
-        if latest is not None:
-            existing_result = _load_existing_result(latest)
-    # Reports are keyed by agent id, so the latest result_<agent>_*.json may have
-    # been produced by a different model (e.g. after the agent's primary model
-    # changed, or an explicit --model). BenchmarkRunner refuses to reuse its
-    # scenarios on model mismatch, but _run_common would otherwise still reuse
-    # its report path as the checkpoint and overwrite that prior run. Drop it and
-    # start a fresh report when the stored model differs from the requested one.
-    if (
-        existing_result is not None
-        and _normalize_resume_model(existing_result.model) != _normalize_resume_model(args.model)
-    ):
-        print(
-            "resume_skip: "
-            f"latest report model={existing_result.model} != requested model={args.model}; "
-            "starting fresh report"
-        )
-        existing_result = None
+        # Reports are keyed by agent id, so the latest result_<agent>_*.json may
+        # have been produced by a different model (e.g. after the agent's primary
+        # model changed, or an explicit --model). Search in reverse timestamp order
+        # until a slug-matched report whose stored model matches the requested one;
+        # drop any newer mismatched report so it is never overwritten as a checkpoint.
+        for candidate in sorted_results_desc(results_dir, report_slug):
+            loaded = _load_existing_result(candidate)
+            if loaded is None:
+                continue
+            if _normalize_resume_model(loaded.model) == _normalize_resume_model(args.model):
+                existing_result = loaded
+                break
+            else:
+                print(
+                    "resume_skip: "
+                    f"report candidate={candidate.name} model={loaded.model} != "
+                    f"requested model={args.model}; continuing search"
+                )
     existing_report_path = Path(existing_result.summary["report_path"]) if existing_result and existing_result.summary.get("report_path") else None
     preserve_completed_source = bool(existing_result and existing_report_path and _report_is_complete(existing_result))
     if preserve_completed_source:

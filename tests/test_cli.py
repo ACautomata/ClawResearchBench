@@ -368,7 +368,7 @@ class CliTests(unittest.TestCase):
         with (
             redirect_stdout(buffer),
             mock.patch.object(run, "load_scenarios", return_value=[mock.sentinel.scenario]),
-            mock.patch.object(run, "_find_latest_report", return_value=existing_path),
+            mock.patch.object(run, "sorted_results_desc", return_value=[existing_path]),
             mock.patch.object(run, "_load_existing_result", return_value=existing_result),
             mock.patch.object(run, "reserve_report_path", return_value=fresh_path) as reserve_report_path,
             mock.patch.object(run, "write_report", return_value=fresh_path),
@@ -444,7 +444,7 @@ class CliTests(unittest.TestCase):
         with (
             redirect_stdout(io.StringIO()),
             mock.patch.object(run, "load_scenarios", return_value=[mock.sentinel.scenario]),
-            mock.patch.object(run, "_find_latest_report", return_value=existing_path),
+            mock.patch.object(run, "sorted_results_desc", return_value=[existing_path]),
             mock.patch.object(run, "_load_existing_result", return_value=existing_result),
             mock.patch.object(run, "reserve_report_path") as reserve_report_path,
             mock.patch.object(run, "write_report", return_value=existing_path),
@@ -479,7 +479,7 @@ class CliTests(unittest.TestCase):
         with (
             redirect_stdout(io.StringIO()),
             mock.patch.object(run, "load_scenarios", return_value=[mock.sentinel.scenario]),
-            mock.patch.object(run, "_find_latest_report", return_value=existing_path),
+            mock.patch.object(run, "sorted_results_desc", return_value=[existing_path]),
             mock.patch.object(run, "_load_existing_result", return_value=existing_result),
             mock.patch.object(run, "reserve_report_path", return_value=fresh_path) as reserve_report_path,
             mock.patch.object(run, "write_report", return_value=fresh_path),
@@ -516,7 +516,7 @@ class CliTests(unittest.TestCase):
         with (
             redirect_stdout(io.StringIO()),
             mock.patch.object(run, "load_scenarios", return_value=[mock.sentinel.scenario]),
-            mock.patch.object(run, "_find_latest_report", return_value=existing_path) as find_latest,
+            mock.patch.object(run, "sorted_results_desc", return_value=[existing_path]) as find_latest,
             mock.patch.object(run, "_load_existing_result", return_value=existing_result),
             mock.patch.object(run, "reserve_report_path") as reserve_report_path,
             mock.patch.object(run, "write_report", return_value=existing_path),
@@ -528,7 +528,7 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         # `--agent ''` opts out of target mode, so checkpoint lookup is scoped by
-        # model (pre-target-mode behavior), never the shared empty `result__` slug.
+        # model slug (pre-target-mode behavior), never the shared empty `result__` slug.
         self.assertEqual(find_latest.call_args.args[1], "model/a")
         reserve_report_path.assert_not_called()
         self.assertEqual(runner_cls.call_args.kwargs["target_agent"], "")

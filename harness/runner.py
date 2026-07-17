@@ -310,13 +310,12 @@ def _sync_workspace_to_snapshot(snapshot: Path, workspace: Path) -> None:
     """Restore ``workspace`` to match ``snapshot`` exactly (rollback a trial).
 
     Full replace (not merge) so a trial that flipped a path's type (file<->dir)
-    is handled correctly: a merge-only copytree could copy a snapshot file INTO a
-    workspace dir and keep the dir, or raise on a dir-over-file and leave the
-    workspace mutated. To stay crash-safe, the snapshot is copied to a staging
-    directory on the SAME filesystem as the live workspace; only after the copy
-    succeeds is the live workspace removed and replaced via an atomic os.rename,
-    so a copy failure leaves the existing workspace untouched rather than wiped.
-    The snapshot must be a complete pre-trial baseline (taken before staging).
+    is handled correctly. Crash-safe 2-phase rename: the existing workspace is
+    moved aside (backup) before staging is renamed into place; only after that
+    rename succeeds is the backup removed. If the process is interrupted between
+    the two renames, either the old workspace or the new one is intact at the
+    canonical path; if the backup survives a crash, the next restore cycle cleans
+    it up (it's a sibling dir with a recognisable prefix).
     """
     if not snapshot.exists():
         raise FileNotFoundError(f"Workspace snapshot not found: {snapshot}")
@@ -328,8 +327,17 @@ def _sync_workspace_to_snapshot(snapshot: Path, workspace: Path) -> None:
         shutil.rmtree(staging, ignore_errors=True)
         raise
     if workspace.exists():
-        shutil.rmtree(workspace)
-    os.rename(staging, workspace)
+        backup = Path(tempfile.mkdtemp(prefix="openclawprobench_rollback_", dir=str(workspace.parent)))
+        os.rename(workspace, backup)
+        try:
+            os.rename(staging, workspace)
+        except BaseException:
+            os.rename(backup, workspace)
+            shutil.rmtree(staging, ignore_errors=True)
+            raise
+        shutil.rmtree(backup, ignore_errors=True)
+    else:
+        os.rename(staging, workspace)
 
 
 def _clear_scenario_owned_target_paths(scenario: Scenario, target_workspace: Path) -> None:
@@ -377,11 +385,11 @@ def _clear_scenario_owned_target_paths(scenario: Scenario, target_workspace: Pat
                 owned.add(entry.name)
     root = target_workspace.resolve(strict=False)
     for rel in owned:
-        candidate = (target_workspace / rel).resolve(strict=False)
+        unresolved = target_workspace / rel
+        candidate = unresolved.resolve(strict=False)
         try:
             candidate.relative_to(root)  # refuse to escape the workspace root
         except ValueError:
-            unresolved = target_workspace / rel
             if unresolved.is_symlink():
                 unresolved.unlink(missing_ok=True)
             continue
@@ -391,10 +399,14 @@ def _clear_scenario_owned_target_paths(scenario: Scenario, target_workspace: Pat
         # root would wipe the target's entire workspace (SOUL.md/skills/).
         if candidate == root:
             continue
-        if candidate.is_dir() and not candidate.is_symlink():
-            shutil.rmtree(candidate, ignore_errors=True)
-        elif candidate.exists() or candidate.is_symlink():
-            candidate.unlink(missing_ok=True)
+        # Delete the unresolved path (symlink or regular), not the resolved target.
+        # Resolve is used only for the containment guard above; an in-workspace
+        # symlink-to-dir must be unlinked rather than rmtree'd (rmtree would
+        # descend into the target and destroy target-owned files).
+        if unresolved.is_dir() and not unresolved.is_symlink():
+            shutil.rmtree(unresolved, ignore_errors=True)
+        elif unresolved.exists() or unresolved.is_symlink():
+            unresolved.unlink(missing_ok=True)
 
 
 def _run_workspace_script(scenario: Scenario, script_path: str | None, workspace: Path) -> None:
