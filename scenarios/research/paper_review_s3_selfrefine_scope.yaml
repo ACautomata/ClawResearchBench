@@ -1,7 +1,7 @@
 id: research_paper_review_s3_selfrefine_scope
 name: Paper Review s3-selfrefine-scope
 execution_mode: live
-dimension: synthesis
+dimension: research
 difficulty: hard
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -33,9 +33,27 @@ prompt: '当前工作区已经放好了只读输入文件。
 tools: []
 expected_tools: []
 ideal_tool_sequence: []
-custom_check: research/paper_review_s3_selfrefine_scope.py
+custom_check: research/paper_review_grader.py
+custom_check_config:
+  output: outputs/s3_selfrefine_scope.md
+  must_contain:
+  - 适用范围
+  - 边界
+  - 条件
+  - 验证
+  - '## 0. 文档定位'
+  - '## 1. 方法机制、实验支撑与关键前提'
+  - '## 2. 核心贡献声明与审稿式质疑'
+  - '## 6. 简短结论'
+  must_not_contain:
+  - 在所有条件下成立
+  - 可以泛化到
+  fields:
+  - '## 0. 文档定位'
+  - '## 1. 方法机制、实验支撑与关键前提'
+  - '## 2. 核心贡献声明与审稿式质疑'
+  - '## 6. 简短结论'
 workspace_seed_dir: ../../datasets/research/paper_review/s3_selfrefine_scope/fixtures
-category: research_paper_review
 description: Paper Review s3-selfrefine-scope
 objective: Complete the research task grounded only in the seeded input material.
 prerequisites:
@@ -50,6 +68,4 @@ scoring_criteria:
 - Output file(s) exist.
 - Required keywords and section headings are present.
 - No forbidden phrases appear.
-fixtures:
-  path: ../../datasets/research/paper_review/s3_selfrefine_scope/fixtures
 time_limit: 300

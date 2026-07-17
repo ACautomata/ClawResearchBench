@@ -1,7 +1,7 @@
 id: research_paper_review_pipeline_prp_001
 name: Pipeline PRP-001
 execution_mode: live
-dimension: synthesis
+dimension: research
 difficulty: hard
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -39,9 +39,30 @@ prompt: '当前工作区已经放好了只读输入文件。
 tools: []
 expected_tools: []
 ideal_tool_sequence: []
-custom_check: research/paper_review_pipeline_prp_001.py
+custom_check: research/paper_review_grader.py
+custom_check_config:
+  outputs:
+  - outputs/prp_001/fedaux-experiment.md
+  - outputs/prp_001/fedaux-problem.md
+  - outputs/prp_001/fedaux-validation.md
+  - outputs/prp_001/fedaux-codex-prompt.md
+  keywords:
+  - '## 0. 文档定位'
+  - '## 11. 一段简短总结'
+  - '## 0. 文档定位'
+  - '## 6. 简短结论'
+  - '## 0. 文档定位'
+  - '## 9. 输出要求说明'
+  - FedAux
+  - Cora
+  - CiteSeer
+  - PubMed
+  - ogbn-arxiv
+  - FedAvg
+  - FedProx
+  - SCAFFOLD
+  - Dirichlet
 workspace_seed_dir: ../../datasets/research/paper_review_pipeline/prp_001/fixtures
-category: research_paper_review_pipeline
 description: Pipeline PRP-001
 objective: Complete the research task grounded only in the seeded input material.
 prerequisites:
@@ -56,6 +77,4 @@ scoring_criteria:
 - Output file(s) exist.
 - Required keywords and section headings are present.
 - No forbidden phrases appear.
-fixtures:
-  path: ../../datasets/research/paper_review_pipeline/prp_001/fixtures
 time_limit: 360

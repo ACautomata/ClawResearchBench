@@ -1,7 +1,7 @@
 id: research_paper_review_s3_ta_scope
 name: Paper Review s3-ta-scope
 execution_mode: live
-dimension: synthesis
+dimension: research
 difficulty: hard
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -33,9 +33,22 @@ prompt: '当前工作区已经放好了只读输入文件。
 tools: []
 expected_tools: []
 ideal_tool_sequence: []
-custom_check: research/paper_review_s3_ta_scope.py
+custom_check: research/paper_review_grader.py
+custom_check_config:
+  output: outputs/s3_ta_scope.md
+  must_contain:
+  - 适用
+  - 边界
+  - 仅在
+  - CLIP
+  - shot
+  - domain shift
+  - 证据强度
+  - 已验证范围
+  - 未验证外推
+  must_not_contain: []
+  fields: []
 workspace_seed_dir: ../../datasets/research/paper_review/s3_ta_scope/fixtures
-category: research_paper_review
 description: Paper Review s3-ta-scope
 objective: Complete the research task grounded only in the seeded input material.
 prerequisites:
@@ -50,6 +63,4 @@ scoring_criteria:
 - Output file(s) exist.
 - Required keywords and section headings are present.
 - No forbidden phrases appear.
-fixtures:
-  path: ../../datasets/research/paper_review/s3_ta_scope/fixtures
 time_limit: 300

@@ -1,7 +1,7 @@
 id: research_paper_review_s5_autocot_prioritize
 name: Paper Review s5-autocot-prioritize
 execution_mode: live
-dimension: synthesis
+dimension: research
 difficulty: hard
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -33,9 +33,21 @@ prompt: '当前工作区已经放好了只读输入文件。
 tools: []
 expected_tools: []
 ideal_tool_sequence: []
-custom_check: research/paper_review_s5_autocot_prioritize.py
+custom_check: research/paper_review_grader.py
+custom_check_config:
+  output: outputs/s5_autocot_prioritize.md
+  must_contain:
+  - '# 发给 claude-code 的完整任务提示词'
+  - 优先级
+  - 排序
+  - 理由
+  - '# 发给 claude-code 的完整任务提示词'
+  - '## 4. 优先实现的验证实验'
+  must_not_contain: []
+  fields:
+  - '# 发给 claude-code 的完整任务提示词'
+  - '## 4. 优先实现的验证实验'
 workspace_seed_dir: ../../datasets/research/paper_review/s5_autocot_prioritize/fixtures
-category: research_paper_review
 description: Paper Review s5-autocot-prioritize
 objective: Complete the research task grounded only in the seeded input material.
 prerequisites:
@@ -50,6 +62,4 @@ scoring_criteria:
 - Output file(s) exist.
 - Required keywords and section headings are present.
 - No forbidden phrases appear.
-fixtures:
-  path: ../../datasets/research/paper_review/s5_autocot_prioritize/fixtures
 time_limit: 300

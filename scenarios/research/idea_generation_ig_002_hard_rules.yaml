@@ -1,7 +1,7 @@
 id: research_idea_generation_ig_002
 name: Single-Paper Idea Hard Rules
 execution_mode: live
-dimension: synthesis
+dimension: research
 difficulty: medium
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -27,7 +27,6 @@ expected_tools: []
 ideal_tool_sequence: []
 custom_check: research/idea_generation_ig_002.py
 workspace_seed_dir: ../../datasets/research/idea_generation/ig-002/fixtures
-category: research_idea_generation
 description: Generate evidence-grounded ideas from one synthetic paper under strict hard rules.
 objective: Produce recommendations with evidence, metric, risk, validation, and no unsupported claims.
 prerequisites:
@@ -41,6 +40,4 @@ expected_outcome: A `recommended-ideas.md` grounded only in TinyRec.
 scoring_criteria:
 - The output exists and covers every hard-rule field.
 - Unsupported language and fabricated numbers are absent.
-fixtures:
-  path: ../../datasets/research/idea_generation/ig-002/fixtures
 time_limit: 240

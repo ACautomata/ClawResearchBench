@@ -1,7 +1,7 @@
 id: research_idea_generate_qa_027
 name: Idea Generate QA-027
 execution_mode: live
-dimension: synthesis
+dimension: research
 difficulty: medium
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -22,9 +22,22 @@ prompt: '当前工作区已经放好了只读输入文件。
 tools: []
 expected_tools: []
 ideal_tool_sequence: []
-custom_check: research/idea_generate_qa_027.py
+custom_check: research/idea_generate_grader.py
+custom_check_config:
+  keywords:
+  - prompt template
+  - non-native
+  - TOEFL
+  - rater bias
+  - language background
+  - fairness
+  - BERT baseline
+  - inter-rater
+  - reproducibility
+  - essay scoring
+  - confound
+  - stratification
 workspace_seed_dir: ../../datasets/research/idea_generate/qa_027/fixtures
-category: research_idea_generation
 description: Idea Generate QA-027
 objective: Complete the research task grounded only in the seeded input material.
 prerequisites:
@@ -39,6 +52,4 @@ scoring_criteria:
 - Output file(s) exist.
 - Required keywords and section headings are present.
 - No forbidden phrases appear.
-fixtures:
-  path: ../../datasets/research/idea_generate/qa_027/fixtures
 time_limit: 240
