@@ -1,7 +1,7 @@
 id: research_idea_generate_qa_043
 name: Idea Generate QA-043
 execution_mode: live
-dimension: synthesis
+dimension: research
 difficulty: medium
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -24,8 +24,25 @@ expected_tools: []
 ideal_tool_sequence: []
 custom_check: research/idea_generate_qa_043.py
 expected_outputs: [recommended-ideas.md]
+custom_check: research/idea_generate_grader.py
+custom_check_config:
+  keywords:
+  - Hinton
+  - FitNet
+  - CRD
+  - ReviewKD
+  - MaskedKD
+  - cross-architecture
+  - imperfect teacher
+  - OOD distillation
+  - lineage
+  - incremental
+  - paradigm
+  - gap
+  - Venn diagram
+  - uncovered
+  - delta
 workspace_seed_dir: ../../datasets/research/idea_generate/qa_043/fixtures
-category: research_idea_generation
 description: Idea Generate QA-043
 objective: Complete the research task grounded only in the seeded input material.
 prerequisites:
@@ -40,6 +57,4 @@ scoring_criteria:
 - Output file(s) exist.
 - Required keywords and section headings are present.
 - No forbidden phrases appear.
-fixtures:
-  path: ../../datasets/research/idea_generate/qa_043/fixtures
 time_limit: 240

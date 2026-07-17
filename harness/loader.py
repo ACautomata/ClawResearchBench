@@ -233,6 +233,7 @@ def load_scenario(path: str | Path) -> Scenario:
         teardown_script=raw.get("teardown_script"),
         replay_traces=replay_traces,
         custom_check=raw.get("custom_check"),
+        custom_check_config=dict(raw.get("custom_check_config") or {}),
         execution_mode=execution_mode,
         efficiency_penalty_cap=raw.get("efficiency_penalty_cap"),
         efficiency_penalty_rate=raw.get("efficiency_penalty_rate"),

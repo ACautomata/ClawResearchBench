@@ -1,7 +1,7 @@
 id: research_idea_generate_qa_002
 name: Low-Cost Vision-Language OOD Ideas
 execution_mode: live
-dimension: synthesis
+dimension: research
 difficulty: medium
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -21,8 +21,24 @@ expected_tools: []
 ideal_tool_sequence: []
 custom_check: research/idea_generate_qa_002.py
 expected_outputs: [recommended-ideas.md]
+custom_check: research/idea_generate_grader.py
+custom_check_config:
+  keywords:
+  - scoring function
+  - CLIP
+  - FPR95
+  - AUROC
+  - concept matching
+  - fine-grained
+  - backbone
+  - inference
+  - calibration
+  - threshold
+  forbidden_phrases:
+  - retrain the backbone
+  - 重新训练 backbone
+  - fine-tune the backbone
 workspace_seed_dir: ../../datasets/research/idea_generate/qa-002/fixtures
-category: research_idea_generation
 description: Generate low-cost OOD detection ideas while preserving a fixed CLIP backbone.
 objective: Propose scoring-only changes with grounded metrics and validation plans.
 prerequisites:
@@ -36,6 +52,4 @@ expected_outcome: Two to four compliant ideas in `recommended-ideas.md`.
 scoring_criteria:
 - The output exists and covers source rubric keywords.
 - The fixed-backbone constraint is respected.
-fixtures:
-  path: ../../datasets/research/idea_generate/qa-002/fixtures
 time_limit: 240

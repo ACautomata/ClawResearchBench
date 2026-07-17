@@ -1,7 +1,7 @@
 id: research_paper_ingest_pi_003
 name: Cross-Paper Evaluation Comparison
 execution_mode: live
-dimension: tool_use
+dimension: research
 difficulty: medium
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -28,7 +28,6 @@ ideal_tool_sequence: []
 custom_check: research/paper_ingest_pi_003.py
 expected_outputs: [wiki/domains/gnn-regularization/comparison.md]
 workspace_seed_dir: ../../datasets/research/paper_ingest/pi-003/fixtures
-category: research_paper_ingest
 description: Compare two synthetic GNN papers across differing evaluation settings.
 objective: Produce an evidence-grounded comparison without fabricating quantitative results.
 prerequisites:
@@ -43,6 +42,4 @@ scoring_criteria:
 - The comparison page exists.
 - Required papers, datasets, baseline, evidence, and setting terms appear.
 - No ungrounded numbers appear.
-fixtures:
-  path: ../../datasets/research/paper_ingest/pi-003/fixtures
 time_limit: 240

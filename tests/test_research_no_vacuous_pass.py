@@ -11,18 +11,9 @@ from harness.scoring import grade_scenario
 
 RESEARCH_ROOT = scenarios_root() / "research"
 
-# (scenario file, empty-output fixture path) for each Phase 1 research scenario.
-# An agent that writes nothing must not pass any of them.
-EMPTY_OUTPUT_CASES = [
-    ("idea_generation_ig_001_full_flow.yaml", {}),
-    ("idea_generation_ig_002_hard_rules.yaml", {"recommended-ideas.md": ""}),
-    ("idea_generate_qa_001_paper_only.yaml", {}),
-    ("idea_generate_qa_002_paper_plus_code.yaml", {}),
-    ("idea_generate_qa_005_constraint_heavy.yaml", {}),
-    ("paper_ingest_pi_001_ingest.yaml", {}),
-    ("paper_ingest_pi_002_missing_info.yaml", {}),
-    ("paper_ingest_pi_003_consistency.yaml", {}),
-]
+
+def _research_yaml_names() -> list[str]:
+    return sorted(path.name for path in RESEARCH_ROOT.glob("*.yaml"))
 
 
 def _final_score(scenario_name: str, files: dict[str, str]) -> float:
@@ -39,15 +30,24 @@ def _final_score(scenario_name: str, files: dict[str, str]) -> float:
 
 
 class ResearchNoVacuousPassTests(unittest.TestCase):
-    def test_empty_or_missing_output_never_passes(self) -> None:
-        for scenario_name, files in EMPTY_OUTPUT_CASES:
+    """An agent that writes no output must not pass any research scenario.
+
+    Covers every research scenario (Phase 1 + Phase 2 + pipeline), exercised
+    through the grade_scenario black-box seam — the test does not know or care
+    whether a grader or a standalone produced the score.
+    """
+
+    def test_empty_output_never_passes_any_research_scenario(self) -> None:
+        names = _research_yaml_names()
+        self.assertGreater(len(names), 0, "no research scenarios discovered")
+        for scenario_name in names:
             with self.subTest(scenario=scenario_name):
                 scenario = load_scenario(RESEARCH_ROOT / scenario_name)
-                score = _final_score(scenario_name, files)
+                score = _final_score(scenario_name, {})
                 self.assertLess(
                     score,
                     scenario.pass_threshold,
-                    f"{scenario_name} passed with empty/missing output at {score} "
+                    f"{scenario_name} passed with no output at {score} "
                     f"(threshold {scenario.pass_threshold})",
                 )
 

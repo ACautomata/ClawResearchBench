@@ -159,7 +159,14 @@ def run_custom_checks(
     module = _load_module(custom_path)
     if not hasattr(module, "grade"):
         raise AttributeError(f"Custom check file {custom_path} must define grade()")
-    result = _call_with_supported_arity(module.grade, str(workspace_path), normalized_trace, normalized_tool_calls)
+    # scenario is passed as the trailing positional argument. The arity-adaptive
+    # adapter slices it away for legacy 3-arg grade(workspace, trace, tool_calls)
+    # checks, so widening the seam is a soft migration that leaves non-research
+    # checks untouched. Graders that need configuration read it off the scenario
+    # via scenario.custom_check_config.
+    result = _call_with_supported_arity(
+        module.grade, str(workspace_path), normalized_trace, normalized_tool_calls, scenario
+    )
     if result is None:
         result = {}
     if not isinstance(result, dict):

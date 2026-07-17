@@ -1,7 +1,7 @@
 id: research_idea_generate_qa_001
 name: Long-Tailed Dataset Distillation Ideas
 execution_mode: live
-dimension: synthesis
+dimension: research
 difficulty: medium
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -21,8 +21,20 @@ expected_tools: []
 ideal_tool_sequence: []
 custom_check: research/idea_generate_qa_001.py
 expected_outputs: [recommended-ideas.md]
+custom_check: research/idea_generate_grader.py
+custom_check_config:
+  keywords:
+  - trajectory matching
+  - class-balanced sampling
+  - synthetic
+  - minority class accuracy
+  - CIFAR-LT
+  - balanced accuracy
+  - majority class
+  - samples per class
+  - overfitting
+  - distillation budget
 workspace_seed_dir: ../../datasets/research/idea_generate/qa-001/fixtures
-category: research_idea_generation
 description: Generate three grounded ideas for long-tailed dataset distillation from inline synthetic material.
 objective: Cover the source methods, dataset, metrics, risks, and validation constraints.
 prerequisites:
@@ -36,6 +48,4 @@ expected_outcome: Three research idea cards in `recommended-ideas.md`.
 scoring_criteria:
 - The output exists.
 - Source rubric keywords are covered proportionally.
-fixtures:
-  path: ../../datasets/research/idea_generate/qa-001/fixtures
 time_limit: 240

@@ -1,7 +1,7 @@
 id: research_paper_review_s3_autocot_cherrypick
 name: Paper Review s3-autocot-cherrypick
 execution_mode: live
-dimension: synthesis
+dimension: research
 difficulty: hard
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -33,9 +33,18 @@ prompt: '当前工作区已经放好了只读输入文件。
 tools: []
 expected_tools: []
 ideal_tool_sequence: []
-custom_check: research/paper_review_s3_autocot_cherrypick.py
+custom_check: research/paper_review_grader.py
+custom_check_config:
+  output: outputs/s3_autocot_cherrypick.md
+  must_contain:
+  - 选择性
+  - 算术
+  - 符号
+  - 2-3%
+  must_not_contain:
+  - 所有 benchmark 均等提升
+  fields: []
 workspace_seed_dir: ../../datasets/research/paper_review/s3_autocot_cherrypick/fixtures
-category: research_paper_review
 description: Paper Review s3-autocot-cherrypick
 objective: Complete the research task grounded only in the seeded input material.
 prerequisites:
@@ -50,6 +59,4 @@ scoring_criteria:
 - Output file(s) exist.
 - Required keywords and section headings are present.
 - No forbidden phrases appear.
-fixtures:
-  path: ../../datasets/research/paper_review/s3_autocot_cherrypick/fixtures
 time_limit: 300

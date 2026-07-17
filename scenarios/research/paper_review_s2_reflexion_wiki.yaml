@@ -1,7 +1,7 @@
 id: research_paper_review_s2_reflexion_wiki
 name: Paper Review s2-reflexion-wiki
 execution_mode: live
-dimension: synthesis
+dimension: research
 difficulty: hard
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -33,9 +33,17 @@ prompt: '当前工作区已经放好了只读输入文件。
 tools: []
 expected_tools: []
 ideal_tool_sequence: []
-custom_check: research/paper_review_s2_reflexion_wiki.py
+custom_check: research/paper_review_grader.py
+custom_check_config:
+  output: outputs/s2_reflexion_wiki.md
+  must_contain:
+  - '## 0. 文档定位'
+  - Reflexion
+  - HumanEval
+  - ALFWorld
+  must_not_contain: []
+  fields: []
 workspace_seed_dir: ../../datasets/research/paper_review/s2_reflexion_wiki/fixtures
-category: research_paper_review
 description: Paper Review s2-reflexion-wiki
 objective: Complete the research task grounded only in the seeded input material.
 prerequisites:
@@ -50,6 +58,4 @@ scoring_criteria:
 - Output file(s) exist.
 - Required keywords and section headings are present.
 - No forbidden phrases appear.
-fixtures:
-  path: ../../datasets/research/paper_review/s2_reflexion_wiki/fixtures
 time_limit: 300

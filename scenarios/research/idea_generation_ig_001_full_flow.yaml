@@ -1,7 +1,7 @@
 id: research_idea_generation_ig_001
 name: Evidence-Grounded Cross-Paper Idea Generation
 execution_mode: live
-dimension: synthesis
+dimension: research
 difficulty: hard
 benchmark_group: intelligence
 benchmark_status: incubating
@@ -43,7 +43,6 @@ ideal_tool_sequence: []
 custom_check: research/idea_generation_ig_001.py
 expected_outputs: [idea-runs/ig-001]
 workspace_seed_dir: ../../datasets/research/idea_generation/ig-001/fixtures
-category: research_idea_generation
 description: Generate structured, evidence-grounded research ideas by synthesizing two synthetic recommender papers.
 objective: Produce five required artifacts whose recommendations cite both papers and include a metric, risk, validation experiment, and no fabricated quantitative claims.
 prerequisites:
@@ -61,6 +60,4 @@ scoring_criteria:
 - The final recommendations cite both papers and name a metric, risk, and validation experiment.
 - The structured idea cards contain the required fields.
 - Quantitative claims are limited to values present in the source papers.
-fixtures:
-  path: ../../datasets/research/idea_generation/ig-001/fixtures
 time_limit: 300
