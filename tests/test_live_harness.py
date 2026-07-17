@@ -1428,5 +1428,195 @@ Gateway agent failed; falling back to embedded
         normalize.assert_called_once_with(transcript, session_metadata=session_metadata)
 
 
+class TargetAgentModeTests(unittest.TestCase):
+    """Target-agent mode (fork/target-main): reuse an existing agent (main/颖姗)
+    instead of creating a throwaway one. Safety invariants under test:
+    never _create_agent, never _delete_agent on the target, never wipe the
+    target workspace, never pool."""
+
+    def test_target_mode_reuses_target_agent_id_and_skips_creation(self) -> None:
+        harness = OpenClawLiveHarness(target_agent="main")
+        completed_stdout = '{"result": {"meta": {"agentMeta": {"sessionId": "real-session-id"}}}}'
+        proc = mock.Mock()
+        proc.returncode = 0
+        transcript = [
+            {
+                "type": "message",
+                "message": {
+                    "role": "assistant",
+                    "content": [{"type": "text", "text": "done"}],
+                    "usage": {"input": 10, "output": 5, "totalTokens": 15},
+                },
+            }
+        ]
+        run_calls: list[list[str]] = []
+
+        def capture_run(args, **_kwargs: object) -> mock.Mock:
+            run_calls.append(list(args))
+            return mock.Mock(returncode=0, stdout="[]", stderr="")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workspace = Path(tmpdir)
+            with (
+                mock.patch.object(harness, "_create_agent") as create_agent,
+                mock.patch.object(harness, "_delete_agent") as delete_agent,
+                mock.patch.object(
+                    harness, "_ensure_agent_ready", return_value={"ensure_ready_phase": "ready"}
+                ),
+                mock.patch("harness.live_harness.subprocess.run", side_effect=capture_run),
+                mock.patch("harness.live_harness.subprocess.Popen", return_value=proc) as popen,
+                mock.patch.object(
+                    harness, "_communicate_with_heartbeat", return_value=(completed_stdout, "")
+                ),
+                mock.patch.object(harness, "_wait_and_load_transcript", return_value=transcript),
+            ):
+                result = harness.execute_turn(
+                    model="minimax/MiniMax-M3",
+                    prompt="hello",
+                    workspace_path=workspace,
+                    timeout=1,
+                )
+
+            self.assertEqual(result.status, "success")
+            self.assertEqual(result.agent_id, "main")
+            create_agent.assert_not_called()
+            delete_agent.assert_not_called()
+            # No `agents delete`/`agents add` subprocess may target the agent id.
+            for args in run_calls:
+                self.assertNotIn("delete", args)
+                self.assertNotIn("add", args)
+            command = popen.call_args.args[0]
+            self.assertIn("main", command)
+            # The agent id is the target, not a generated ocb6-<model>-<uuid> id.
+            agent_index = command.index("--agent")
+            self.assertEqual(command[agent_index + 1], "main")
+
+    def test_target_mode_skips_unknown_agent_recreate(self) -> None:
+        harness = OpenClawLiveHarness(target_agent="main")
+        proc = mock.Mock()
+        proc.returncode = 0
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workspace = Path(tmpdir)
+            with (
+                mock.patch.object(harness, "_create_agent") as create_agent,
+                mock.patch.object(harness, "_delete_agent"),
+                mock.patch.object(
+                    harness, "_ensure_agent_ready", return_value={"ensure_ready_phase": "ready"}
+                ),
+                mock.patch.object(harness, "_is_unknown_agent_error", return_value=True),
+                mock.patch("harness.live_harness.subprocess.Popen", return_value=proc) as popen,
+                mock.patch.object(
+                    harness, "_communicate_with_heartbeat", return_value=('{"result": {}}', "")
+                ),
+                mock.patch.object(harness, "_wait_and_load_transcript", return_value=[]),
+            ):
+                harness.execute_turn(
+                    model="minimax/MiniMax-M3",
+                    prompt="hello",
+                    workspace_path=workspace,
+                    timeout=1,
+                )
+
+            # Target mode must not try to (re)create the agent even when an
+            # unknown-agent error is observed: _create_agent force-deletes first.
+            create_agent.assert_not_called()
+            self.assertEqual(popen.call_count, 1)
+
+    def test_target_mode_never_uses_agent_pool(self) -> None:
+        harness = OpenClawLiveHarness(target_agent="main", agent_pool_size=2, cleanup_agents=True)
+        proc = mock.Mock()
+        proc.returncode = 0
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workspace = Path(tmpdir)
+            with (
+                mock.patch.object(harness, "_acquire_agent_pool_slot") as acquire_slot,
+                mock.patch.object(harness, "_create_agent"),
+                mock.patch.object(harness, "_delete_agent"),
+                mock.patch.object(
+                    harness, "_ensure_agent_ready", return_value={"ensure_ready_phase": "ready"}
+                ),
+                mock.patch("harness.live_harness.subprocess.Popen", return_value=proc),
+                mock.patch.object(
+                    harness, "_communicate_with_heartbeat", return_value=('{"result": {}}', "")
+                ),
+                mock.patch.object(harness, "_wait_and_load_transcript", return_value=[]),
+            ):
+                result = harness.execute_turn(
+                    model="minimax/MiniMax-M3",
+                    prompt="hello",
+                    workspace_path=workspace,
+                    timeout=1,
+                )
+
+            acquire_slot.assert_not_called()
+            self.assertEqual(result.agent_id, "main")
+
+    def test_target_mode_delete_agent_never_deletes_target(self) -> None:
+        harness = OpenClawLiveHarness(target_agent="main")
+        with mock.patch.object(harness, "_delete_agent") as delete:
+            harness.delete_agent("main")
+            delete.assert_not_called()
+            # Throwaway agents (probe/pool) still clean up normally.
+            harness.delete_agent("ocb6-minimax-minimax-m3-probe")
+            delete.assert_called_once_with("ocb6-minimax-minimax-m3-probe")
+
+    def test_target_mode_replace_workspace_contents_stages_without_wiping(self) -> None:
+        harness = OpenClawLiveHarness(target_agent="main")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            target = root / "yingshan"
+            target.mkdir()
+            (target / "SOUL.md").write_text("soul", encoding="utf-8")
+            (target / "skills").mkdir()
+            (target / "skills" / "keep.md").write_text("keep", encoding="utf-8")
+
+            source = root / "seed"
+            (source / "materials").mkdir(parents=True)
+            (source / "materials" / "paper.txt").write_text("paper", encoding="utf-8")
+
+            harness._replace_workspace_contents(source, target)
+
+            # Siblings preserved.
+            self.assertEqual((target / "SOUL.md").read_text(encoding="utf-8"), "soul")
+            self.assertTrue((target / "skills" / "keep.md").exists())
+            # Fixtures staged into expected subpaths.
+            self.assertEqual((target / "materials" / "paper.txt").read_text(encoding="utf-8"), "paper")
+
+    def test_non_target_mode_replace_workspace_contents_wipes_target(self) -> None:
+        harness = OpenClawLiveHarness()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            target = root / "worker"
+            target.mkdir()
+            (target / "stale.txt").write_text("stale", encoding="utf-8")
+
+            source = root / "seed"
+            source.mkdir()
+            (source / "fresh.txt").write_text("fresh", encoding="utf-8")
+
+            harness._replace_workspace_contents(source, target)
+
+            self.assertFalse((target / "stale.txt").exists())
+            self.assertEqual((target / "fresh.txt").read_text(encoding="utf-8"), "fresh")
+
+    def test_read_primary_model_reads_agents_defaults_model_primary(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            harness = OpenClawLiveHarness(openclaw_state_dir=tmpdir)
+            config_path = harness._config_path()
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+            config_path.write_text(
+                json.dumps(
+                    {"agents": {"defaults": {"model": {"primary": "minimax/MiniMax-M3"}}}}
+                ),
+                encoding="utf-8",
+            )
+            self.assertEqual(harness.read_primary_model(), "minimax/MiniMax-M3")
+
+    def test_read_primary_model_returns_none_when_key_absent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            harness = OpenClawLiveHarness(openclaw_state_dir=tmpdir)
+            self.assertIsNone(harness.read_primary_model())
+
+
 if __name__ == "__main__":
     unittest.main()

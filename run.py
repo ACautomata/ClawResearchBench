@@ -20,6 +20,7 @@ from harness.loader import load_scenarios, results_root, summarize_scenarios
 from harness.models import BenchmarkResult
 from harness.reporter import compare_reports, print_comparison, print_summary, reserve_report_path, write_report
 from harness.runner import BenchmarkRunner
+from harness.live_harness import OpenClawLiveHarness
 from harness.scoring import SUPPORTED_CHECK_TYPES
 
 DEFAULT_OPENCLAW_BINARY = os.environ.get("OPENCLAW_BINARY", "openclaw")
@@ -68,6 +69,27 @@ def _exclude_scenarios(scenarios, exclude_ids: list[str] | None):
 
 def _model_slug(model: str) -> str:
     return model.replace("/", "_").replace(":", "_")
+
+
+def _resolve_run_model(args: argparse.Namespace) -> str:
+    """Return the model id for a run, auto-resolving from openclaw.json.
+
+    When ``--model`` is omitted, read ``agents.defaults.model.primary`` from the
+    resolved openclaw.json (the target agent already owns its model there).
+    """
+    if getattr(args, "model", None):
+        return str(args.model)
+    harness = OpenClawLiveHarness(
+        openclaw_profile=getattr(args, "openclaw_profile", None),
+        openclaw_state_dir=getattr(args, "openclaw_state_dir", None),
+        openclaw_config_path=getattr(args, "openclaw_config_path", None),
+    )
+    primary = harness.read_primary_model()
+    if not primary:
+        raise ValueError(
+            "--model is required when agents.defaults.model.primary is absent from the resolved openclaw.json"
+        )
+    return primary
 
 
 def _apply_timeout_multiplier(scenarios, multiplier: float):
@@ -246,15 +268,15 @@ def _run_common(args: argparse.Namespace) -> int:
     if getattr(args, "resume_from", None):
         existing_result = _load_existing_result(Path(args.resume_from))
     elif getattr(args, "continue_run", False):
-        latest = _find_latest_report(results_dir, args.model)
+        latest = _find_latest_report(results_dir, args.agent)
         if latest is not None:
             existing_result = _load_existing_result(latest)
     existing_report_path = Path(existing_result.summary["report_path"]) if existing_result and existing_result.summary.get("report_path") else None
     preserve_completed_source = bool(existing_result and existing_report_path and _report_is_complete(existing_result))
     if preserve_completed_source:
-        report_path = reserve_report_path(results_dir, args.model)
+        report_path = reserve_report_path(results_dir, args.agent)
     else:
-        report_path = existing_report_path if existing_report_path else reserve_report_path(results_dir, args.model)
+        report_path = existing_report_path if existing_report_path else reserve_report_path(results_dir, args.agent)
     if existing_result:
         print(
             "resume_source: "
@@ -274,6 +296,8 @@ def _run_common(args: argparse.Namespace) -> int:
         "python3",
         "run.py",
         args.command,
+        "--agent",
+        args.agent,
         "--model",
         args.model,
     ]
@@ -306,6 +330,7 @@ def _run_common(args: argparse.Namespace) -> int:
         openclaw_gateway_port=getattr(args, "openclaw_gateway_port", None),
         use_local_agent=args.local_agent,
         cleanup_agents=args.cleanup_agents,
+        target_agent=args.agent,
         parallelism=args.parallel,
         allow_live_parallelism=getattr(args, "allow_live_parallelism", False),
         live_retry_attempts=getattr(args, "live_retries", 0),
@@ -331,8 +356,7 @@ def _run_common(args: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    if not args.model:
-        raise ValueError("--model is required for run")
+    args.model = _resolve_run_model(args)
     return _run_common(args)
 
 
@@ -398,7 +422,16 @@ def build_parser() -> argparse.ArgumentParser:
     dry.set_defaults(func=cmd_dry)
 
     run = subparsers.add_parser("run", help="Run benchmark with active live scenarios.")
-    run.add_argument("--model", required=True)
+    run.add_argument(
+        "--agent",
+        default="main",
+        help="Target an existing OpenClaw agent by id and reuse its workspace (fork default: main/颖姗).",
+    )
+    run.add_argument(
+        "--model",
+        default=None,
+        help="Model id. When omitted, resolved from agents.defaults.model.primary of the openclaw.json.",
+    )
     run.add_argument("--dimension", default=None)
     run.add_argument("--scenario", default=None)
     run.add_argument("--difficulty", choices=["easy", "medium", "hard", "expert"], default=None)

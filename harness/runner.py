@@ -760,6 +760,7 @@ class BenchmarkRunner:
         openclaw_gateway_port: int | None = None,
         use_local_agent: bool = False,
         cleanup_agents: bool = False,
+        target_agent: str | None = None,
         parallelism: int = 1,
         allow_live_parallelism: bool = False,
         live_retry_attempts: int = 0,
@@ -782,6 +783,7 @@ class BenchmarkRunner:
         self.openclaw_config_path = str(openclaw_config_path or "").strip() or None
         self.openclaw_gateway_port = int(openclaw_gateway_port) if openclaw_gateway_port else None
         self.use_local_agent = use_local_agent
+        self.target_agent = str(target_agent or "").strip() or None
         self.parallelism = parallelism
         self.allow_live_parallelism = allow_live_parallelism
         self.live_retry_attempts = live_retry_attempts
@@ -798,6 +800,7 @@ class BenchmarkRunner:
             progress_callback=self._progress,
             progress_interval_seconds=self.progress_interval_seconds,
             agent_pool_size=parallelism if allow_live_parallelism and parallelism > 1 else 0,
+            target_agent=self.target_agent,
         )
         self._active_live_preflight: LivePreflightResult | None = None
 

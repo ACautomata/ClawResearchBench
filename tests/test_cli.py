@@ -456,6 +456,66 @@ class CliTests(unittest.TestCase):
         self.assertEqual(kwargs["checkpoint_path"], existing_path)
         reserve_report_path.assert_not_called()
 
+    def test_run_command_agent_defaults_to_main_and_model_optional(self) -> None:
+        args = run.build_parser().parse_args(["run"])
+
+        self.assertEqual(args.agent, "main")
+        self.assertIsNone(args.model)
+
+    def test_run_command_accepts_explicit_agent(self) -> None:
+        args = run.build_parser().parse_args(["run", "--agent", "reviewer", "--model", "glm/GLM-5"])
+
+        self.assertEqual(args.agent, "reviewer")
+        self.assertEqual(args.model, "glm/GLM-5")
+
+    def test_resolve_run_model_returns_explicit_model(self) -> None:
+        args = run.build_parser().parse_args(["run", "--model", "glm/GLM-5"])
+
+        self.assertEqual(run._resolve_run_model(args), "glm/GLM-5")
+
+    def test_resolve_run_model_reads_primary_when_omitted(self) -> None:
+        args = run.build_parser().parse_args(["run"])
+        with mock.patch.object(run, "OpenClawLiveHarness") as harness_cls:
+            harness_cls.return_value.read_primary_model.return_value = "minimax/MiniMax-M3"
+
+            self.assertEqual(run._resolve_run_model(args), "minimax/MiniMax-M3")
+
+        harness_cls.assert_called_once()
+
+    def test_resolve_run_model_raises_when_primary_absent(self) -> None:
+        args = run.build_parser().parse_args(["run"])
+        with mock.patch.object(run, "OpenClawLiveHarness") as harness_cls:
+            harness_cls.return_value.read_primary_model.return_value = None
+            with self.assertRaisesRegex(ValueError, "--model is required"):
+                run._resolve_run_model(args)
+
+    def test_cmd_run_passes_target_agent_and_uses_agent_slug(self) -> None:
+        args = run.build_parser().parse_args(
+            ["run", "--model", "glm/GLM-5", "--scenario", "stub_case", "--trials", "1"]
+        )
+        fake_result = mock.Mock()
+        fake_result.summary = {"report_path": ""}
+        buffer = io.StringIO()
+
+        with (
+            redirect_stdout(buffer),
+            mock.patch.object(run, "load_scenarios", return_value=[mock.sentinel.scenario]),
+            mock.patch.object(run, "reserve_report_path", return_value=Path("results/fake.json")) as reserve_report_path,
+            mock.patch.object(run, "write_report", return_value=Path("results/fake.json")),
+            mock.patch.object(run, "print_summary"),
+            mock.patch.object(run, "BenchmarkRunner") as runner_cls,
+        ):
+            runner_cls.return_value.run_with_resume.return_value = fake_result
+            exit_code = args.func(args)
+
+        self.assertEqual(exit_code, 0)
+        # Result report slug is the agent id (main), not the model.
+        reserve_report_path.assert_called_once()
+        self.assertEqual(reserve_report_path.call_args.args[1], "main")
+        # Runner receives the target agent.
+        self.assertEqual(runner_cls.call_args.kwargs["target_agent"], "main")
+        self.assertIn("--agent main", buffer.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()
