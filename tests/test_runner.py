@@ -972,6 +972,47 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual((real_workspace / "SOUL.md").read_text(encoding="utf-8"), "soul")
             self.assertFalse((real_workspace / "outputs" / "result.txt").exists())
 
+    def test_clear_scenario_owned_paths_never_deletes_workspace_root(self) -> None:
+        # A malformed scenario check whose path resolves to the workspace root
+        # (e.g. "/" or ".") must NOT rmtree the target's real workspace - that
+        # would wipe SOUL.md/skills/, the fork's #1 safety invariant.
+        from harness.runner import _clear_scenario_owned_target_paths
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            real_workspace = root / "main_ws"
+            real_workspace.mkdir()
+            (real_workspace / "SOUL.md").write_text("soul", encoding="utf-8")
+            (real_workspace / "skills").mkdir()
+            (real_workspace / "skills" / "keep.md").write_text("keep", encoding="utf-8")
+            scenario = _synthetic_live_scenario(
+                root,
+                scenario_id="root_guard",
+                dimension=Dimension.CONSTRAINTS,
+                difficulty=Difficulty.EASY,
+            )
+            scenario.checks = [
+                CheckSpec(
+                    check_id="bad_root",
+                    check_type="file_exists",
+                    points=1.0,
+                    category=CheckCategory.CORRECTNESS,
+                    config={"path": "/"},
+                ),
+                CheckSpec(
+                    check_id="bad_dot",
+                    check_type="file_exists",
+                    points=1.0,
+                    category=CheckCategory.CORRECTNESS,
+                    config={"path": "."},
+                ),
+            ]
+            # Must not raise and must not delete the workspace or its contents.
+            _clear_scenario_owned_target_paths(scenario, real_workspace)
+            self.assertTrue(real_workspace.exists())
+            self.assertEqual((real_workspace / "SOUL.md").read_text(encoding="utf-8"), "soul")
+            self.assertTrue((real_workspace / "skills" / "keep.md").exists())
+
     def test_live_parallel_run_backs_off_after_retry_pressure(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             scenarios = [

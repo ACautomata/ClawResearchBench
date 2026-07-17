@@ -375,6 +375,12 @@ def _clear_scenario_owned_target_paths(scenario: Scenario, target_workspace: Pat
             candidate.relative_to(root)  # refuse to escape the workspace root
         except ValueError:
             continue
+        # Never delete the workspace root itself: a malformed scenario path like
+        # "/" or "." resolves to root, and relative_to(root) returns "." (no
+        # ValueError), so the traversal guard above does not catch it. Deleting
+        # root would wipe the target's entire workspace (SOUL.md/skills/).
+        if candidate == root:
+            continue
         if candidate.is_dir() and not candidate.is_symlink():
             shutil.rmtree(candidate, ignore_errors=True)
         elif candidate.exists() or candidate.is_symlink():
