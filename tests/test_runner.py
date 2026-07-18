@@ -857,6 +857,228 @@ class RunnerTests(unittest.TestCase):
             # ... while the target's own contents persist.
             self.assertEqual((real_workspace / "SOUL.md").read_text(encoding="utf-8"), "soul")
 
+    def test_target_mode_restores_memory_wiki_vault_between_trials(self) -> None:
+        from harness import runner as runner_module
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            real_workspace = root / "main_ws"
+            real_workspace.mkdir()
+            (real_workspace / "SOUL.md").write_text("soul", encoding="utf-8")
+            vault = root / "wiki" / "main"
+            vault.mkdir(parents=True)
+            (vault / "baseline.md").write_text("baseline", encoding="utf-8")
+            runner = BenchmarkRunner(
+                results_dir=Path("results"),
+                execution_mode="live",
+                target_agent="main",
+                workspace_root=root,
+                show_progress=False,
+            )
+            scenario = _synthetic_live_scenario(
+                root,
+                scenario_id="target_wiki_restore",
+                dimension=Dimension.CONSTRAINTS,
+                difficulty=Difficulty.EASY,
+            )
+
+            def fake_execute_turn(**_kwargs: object) -> LiveRunResult:
+                (vault / "trial-output.md").write_text("must not leak", encoding="utf-8")
+                return LiveRunResult(
+                    status="success",
+                    exit_code=0,
+                    workspace_path=str(real_workspace),
+                    agent_id="main",
+                    session_id="sid",
+                    trace={"events": [], "metrics": {}},
+                )
+
+            with (
+                mock.patch.object(runner.live_harness, "target_workspace_path", return_value=real_workspace),
+                mock.patch.object(runner.live_harness, "target_memory_wiki_vault_path", return_value=vault),
+                mock.patch.object(runner.live_harness, "execute_turn", side_effect=fake_execute_turn),
+                mock.patch.object(runner_module, "grade_scenario", return_value=mock.Mock(
+                    final_score=1.0,
+                    capability_score=1.0,
+                    safety_passed=True,
+                    check_results=[],
+                    process_score=1.0,
+                    efficiency_score=1.0,
+                    efficiency_penalty=0.0,
+                    safety_failures=[],
+                )),
+            ):
+                runner._run_trial_once(
+                    "mock/default", scenario, 1, runner_module._normalize_pricing_block({}), execution_mode="live"
+                )
+
+            self.assertEqual((vault / "baseline.md").read_text(encoding="utf-8"), "baseline")
+            self.assertFalse((vault / "trial-output.md").exists())
+
+    def test_target_mode_removes_new_memory_wiki_vault_after_trial(self) -> None:
+        from harness import runner as runner_module
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            real_workspace = root / "main_ws"
+            real_workspace.mkdir()
+            vault = root / "wiki" / "main"
+            runner = BenchmarkRunner(
+                results_dir=Path("results"),
+                execution_mode="live",
+                target_agent="main",
+                workspace_root=root,
+                show_progress=False,
+            )
+            scenario = _synthetic_live_scenario(
+                root,
+                scenario_id="target_new_wiki_vault",
+                dimension=Dimension.CONSTRAINTS,
+                difficulty=Difficulty.EASY,
+            )
+
+            def fake_execute_turn(**_kwargs: object) -> LiveRunResult:
+                vault.mkdir(parents=True)
+                (vault / "trial-output.md").write_text("must not persist", encoding="utf-8")
+                return LiveRunResult(
+                    status="success",
+                    exit_code=0,
+                    workspace_path=str(real_workspace),
+                    agent_id="main",
+                    session_id="sid",
+                    trace={"events": [], "metrics": {}},
+                )
+
+            with (
+                mock.patch.object(runner.live_harness, "target_workspace_path", return_value=real_workspace),
+                mock.patch.object(runner.live_harness, "target_memory_wiki_vault_path", return_value=vault),
+                mock.patch.object(runner.live_harness, "execute_turn", side_effect=fake_execute_turn),
+                mock.patch.object(runner_module, "grade_scenario", return_value=mock.Mock(
+                    final_score=1.0,
+                    capability_score=1.0,
+                    safety_passed=True,
+                    check_results=[],
+                    process_score=1.0,
+                    efficiency_score=1.0,
+                    efficiency_penalty=0.0,
+                    safety_failures=[],
+                )),
+            ):
+                runner._run_trial_once(
+                    "mock/default", scenario, 1, runner_module._normalize_pricing_block({}), execution_mode="live"
+                )
+
+            self.assertFalse(vault.exists())
+
+    def test_target_mode_wiki_snapshot_failure_does_not_truncate_vault(self) -> None:
+        """A failed wiki snapshot must not be restored over the real vault."""
+        import shutil as shutil_module
+        from harness import runner as runner_module
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            real_workspace = root / "main_ws"
+            real_workspace.mkdir()
+            (real_workspace / "SOUL.md").write_text("soul", encoding="utf-8")
+            vault = root / "wiki" / "main"
+            vault.mkdir(parents=True)
+            (vault / "baseline.md").write_text("baseline", encoding="utf-8")
+            runner = BenchmarkRunner(
+                results_dir=Path("results"),
+                execution_mode="live",
+                target_agent="main",
+                workspace_root=root,
+                show_progress=False,
+            )
+            scenario = _synthetic_live_scenario(
+                root,
+                scenario_id="target_wiki_snapshot_fail",
+                dimension=Dimension.CONSTRAINTS,
+                difficulty=Difficulty.EASY,
+            )
+            real_copytree = shutil_module.copytree
+
+            def fake_copytree(src, dst, *args, **kwargs):
+                if Path(src).resolve() == vault.resolve():
+                    raise OSError("simulated wiki snapshot failure")
+                return real_copytree(src, dst, *args, **kwargs)
+
+            with (
+                mock.patch.object(runner.live_harness, "target_workspace_path", return_value=real_workspace),
+                mock.patch.object(runner.live_harness, "target_memory_wiki_vault_path", return_value=vault),
+                mock.patch.object(runner_module.shutil, "copytree", side_effect=fake_copytree),
+            ):
+                with self.assertRaises(OSError):
+                    runner._run_trial_once(
+                        "mock/default", scenario, 1, runner_module._normalize_pricing_block({}), execution_mode="live"
+                    )
+
+            # The failed snapshot must not have truncated the durable vault.
+            self.assertEqual((vault / "baseline.md").read_text(encoding="utf-8"), "baseline")
+
+    def test_target_mode_restores_symlinked_memory_wiki_vault(self) -> None:
+        """A vault whose configured path is a directory symlink is rolled back."""
+        from harness import runner as runner_module
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            real_workspace = root / "main_ws"
+            real_workspace.mkdir()
+            (real_workspace / "SOUL.md").write_text("soul", encoding="utf-8")
+            real_vault = root / "real_wiki"
+            real_vault.mkdir()
+            (real_vault / "baseline.md").write_text("baseline", encoding="utf-8")
+            vault = root / "wiki" / "main"
+            vault.parent.mkdir(parents=True)
+            vault.symlink_to(real_vault, target_is_directory=True)
+            runner = BenchmarkRunner(
+                results_dir=Path("results"),
+                execution_mode="live",
+                target_agent="main",
+                workspace_root=root,
+                show_progress=False,
+            )
+            scenario = _synthetic_live_scenario(
+                root,
+                scenario_id="target_wiki_symlink",
+                dimension=Dimension.CONSTRAINTS,
+                difficulty=Difficulty.EASY,
+            )
+
+            def fake_execute_turn(**_kwargs: object) -> LiveRunResult:
+                (vault / "trial-output.md").write_text("must not leak", encoding="utf-8")
+                return LiveRunResult(
+                    status="success",
+                    exit_code=0,
+                    workspace_path=str(real_workspace),
+                    agent_id="main",
+                    session_id="sid",
+                    trace={"events": [], "metrics": {}},
+                )
+
+            with (
+                mock.patch.object(runner.live_harness, "target_workspace_path", return_value=real_workspace),
+                mock.patch.object(runner.live_harness, "target_memory_wiki_vault_path", return_value=vault),
+                mock.patch.object(runner.live_harness, "execute_turn", side_effect=fake_execute_turn),
+                mock.patch.object(runner_module, "grade_scenario", return_value=mock.Mock(
+                    final_score=1.0,
+                    capability_score=1.0,
+                    safety_passed=True,
+                    check_results=[],
+                    process_score=1.0,
+                    efficiency_score=1.0,
+                    efficiency_penalty=0.0,
+                    safety_failures=[],
+                )),
+            ):
+                runner._run_trial_once(
+                    "mock/default", scenario, 1, runner_module._normalize_pricing_block({}), execution_mode="live"
+                )
+
+            self.assertEqual((real_vault / "baseline.md").read_text(encoding="utf-8"), "baseline")
+            self.assertFalse((real_vault / "trial-output.md").exists())
+            self.assertTrue(vault.is_symlink())
+
     def test_target_mode_rejects_isolated_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             with self.assertRaisesRegex(ValueError, "must run against the default OpenClaw state"):

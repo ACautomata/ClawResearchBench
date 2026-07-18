@@ -943,6 +943,27 @@ class OpenClawLiveHarness:
         primary = primary.strip()
         return primary or None
 
+    def target_memory_wiki_vault_path(self) -> Path | None:
+        """Resolve the target agent's configured memory-wiki vault.
+
+        Target-agent benchmark trials must restore this state alongside the
+        workspace: research skills persist their deliverables through
+        ``wiki_apply``, and the vault normally lives outside the workspace.
+        """
+        payload = self._read_json_file(self._config_path())
+        if not isinstance(payload, dict):
+            return None
+        plugins = payload.get("plugins")
+        entries = plugins.get("entries") if isinstance(plugins, dict) else None
+        memory_wiki = entries.get("memory-wiki") if isinstance(entries, dict) else None
+        config = memory_wiki.get("config") if isinstance(memory_wiki, dict) else None
+        vault = config.get("vault") if isinstance(config, dict) else None
+        raw_path = vault.get("path") if isinstance(vault, dict) else None
+        if not isinstance(raw_path, str) or not raw_path.strip():
+            return None
+        return self._expand_configured_path(raw_path)
+
+
     def target_workspace_path(self) -> Path | None:
         """Resolve the target agent's configured workspace path.
 

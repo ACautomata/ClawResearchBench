@@ -1695,6 +1695,9 @@ class BenchmarkRunner:
             workspace_snapshot_dir: tempfile.TemporaryDirectory[str] | None = None
             target_workspace_snapshot_dir: tempfile.TemporaryDirectory[str] | None = None
             target_workspace_path: Path | None = None
+            target_wiki_snapshot_dir: tempfile.TemporaryDirectory[str] | None = None
+            target_wiki_vault_path: Path | None = None
+            target_wiki_vault_existed = False
             try:
                 trace: dict[str, Any]
                 execution = TrialExecution(mode=execution_mode)
@@ -1740,6 +1743,29 @@ class BenchmarkRunner:
                                     dir=None,
                                 )
                                 shutil.copytree(resolved, target_workspace_snapshot_dir.name, dirs_exist_ok=True, symlinks=True)
+                            # Research skills persist their outputs with wiki_apply. The
+                            # configured vault lives outside the workspace, so snapshot
+                            # it before clearing scenario outputs and restore it after
+                            # grading to keep each trial independent.
+                            vault = self.live_harness.target_memory_wiki_vault_path()
+                            if vault is not None:
+                                target_wiki_vault_path = vault
+                                target_wiki_vault_existed = vault.exists()
+                                if target_wiki_vault_existed:
+                                    wiki_snapshot_dir = tempfile.TemporaryDirectory(
+                                        prefix=f"openclawprobench_{scenario.scenario_id}_wiki_",
+                                        dir=None,
+                                    )
+                                    # Only publish the snapshot once the copy succeeds:
+                                    # a partial/empty snapshot restored over the real
+                                    # vault would truncate the agent's durable memory.
+                                    try:
+                                        shutil.copytree(vault, wiki_snapshot_dir.name, dirs_exist_ok=True, symlinks=True)
+                                    except BaseException:
+                                        wiki_snapshot_dir.cleanup()
+                                        raise
+                                    target_wiki_snapshot_dir = wiki_snapshot_dir
+                            if self.target_agent:
                                 # THEN clear stale scenario-owned outputs (built-in
                                 # check paths + fixtures + declared expected_outputs)
                                 # so the agent must produce them fresh for grading.
@@ -1843,6 +1869,32 @@ class BenchmarkRunner:
                     workspace_path=str(grade_workspace),
                 )
             finally:
+                if target_wiki_vault_path is not None:
+                    try:
+                        if target_wiki_vault_existed and target_wiki_snapshot_dir is not None:
+                            # Resolve a directory symlink so _sync_workspace_to_snapshot
+                            # renames the backing directory, not the link itself (os.rename
+                            # of a symlink onto an empty dir raises IsADirectoryError and the
+                            # swallowed best-effort failure would leak trial writes).
+                            restore_target = (
+                                target_wiki_vault_path.resolve()
+                                if target_wiki_vault_path.is_symlink()
+                                else target_wiki_vault_path
+                            )
+                            _sync_workspace_to_snapshot(Path(target_wiki_snapshot_dir.name), restore_target)
+                        elif not target_wiki_vault_existed and (
+                            target_wiki_vault_path.exists() or target_wiki_vault_path.is_symlink()
+                        ):
+                            # The vault did not exist at baseline, so the trial created it:
+                            # remove it to keep trials independent. The ``not existed`` guard
+                            # prevents deleting a baseline vault whose snapshot failed
+                            # (snapshot_dir is None then, but the vault must be preserved).
+                            if target_wiki_vault_path.is_dir() and not target_wiki_vault_path.is_symlink():
+                                shutil.rmtree(target_wiki_vault_path)
+                            else:
+                                target_wiki_vault_path.unlink()
+                    except Exception as exc:  # pragma: no cover - best-effort restore
+                        self._progress(f"target-wiki-restore-failed error={exc}")
                 if target_workspace_snapshot_dir is not None and target_workspace_path is not None:
                     try:
                         _sync_workspace_to_snapshot(
@@ -1854,6 +1906,8 @@ class BenchmarkRunner:
                     workspace_snapshot_dir.cleanup()
                 if target_workspace_snapshot_dir is not None:
                     target_workspace_snapshot_dir.cleanup()
+                if target_wiki_snapshot_dir is not None:
+                    target_wiki_snapshot_dir.cleanup()
                 _run_workspace_script(scenario, scenario.teardown_script, workspace)
                 if execution_mode == "live" and live_result and self.live_harness.cleanup_agents:
                     self.live_harness.delete_agent(live_result.agent_id)
