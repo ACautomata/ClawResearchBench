@@ -1752,11 +1752,19 @@ class BenchmarkRunner:
                                 target_wiki_vault_path = vault
                                 target_wiki_vault_existed = vault.exists()
                                 if target_wiki_vault_existed:
-                                    target_wiki_snapshot_dir = tempfile.TemporaryDirectory(
+                                    wiki_snapshot_dir = tempfile.TemporaryDirectory(
                                         prefix=f"openclawprobench_{scenario.scenario_id}_wiki_",
                                         dir=None,
                                     )
-                                    shutil.copytree(vault, target_wiki_snapshot_dir.name, dirs_exist_ok=True, symlinks=True)
+                                    # Only publish the snapshot once the copy succeeds:
+                                    # a partial/empty snapshot restored over the real
+                                    # vault would truncate the agent's durable memory.
+                                    try:
+                                        shutil.copytree(vault, wiki_snapshot_dir.name, dirs_exist_ok=True, symlinks=True)
+                                    except BaseException:
+                                        wiki_snapshot_dir.cleanup()
+                                        raise
+                                    target_wiki_snapshot_dir = wiki_snapshot_dir
                             if self.target_agent:
                                 # THEN clear stale scenario-owned outputs (built-in
                                 # check paths + fixtures + declared expected_outputs)
@@ -1864,8 +1872,23 @@ class BenchmarkRunner:
                 if target_wiki_vault_path is not None:
                     try:
                         if target_wiki_vault_existed and target_wiki_snapshot_dir is not None:
-                            _sync_workspace_to_snapshot(Path(target_wiki_snapshot_dir.name), target_wiki_vault_path)
-                        elif target_wiki_vault_path.exists() or target_wiki_vault_path.is_symlink():
+                            # Resolve a directory symlink so _sync_workspace_to_snapshot
+                            # renames the backing directory, not the link itself (os.rename
+                            # of a symlink onto an empty dir raises IsADirectoryError and the
+                            # swallowed best-effort failure would leak trial writes).
+                            restore_target = (
+                                target_wiki_vault_path.resolve()
+                                if target_wiki_vault_path.is_symlink()
+                                else target_wiki_vault_path
+                            )
+                            _sync_workspace_to_snapshot(Path(target_wiki_snapshot_dir.name), restore_target)
+                        elif not target_wiki_vault_existed and (
+                            target_wiki_vault_path.exists() or target_wiki_vault_path.is_symlink()
+                        ):
+                            # The vault did not exist at baseline, so the trial created it:
+                            # remove it to keep trials independent. The ``not existed`` guard
+                            # prevents deleting a baseline vault whose snapshot failed
+                            # (snapshot_dir is None then, but the vault must be preserved).
                             if target_wiki_vault_path.is_dir() and not target_wiki_vault_path.is_symlink():
                                 shutil.rmtree(target_wiki_vault_path)
                             else:
