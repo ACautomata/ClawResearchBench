@@ -915,6 +915,61 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual((vault / "baseline.md").read_text(encoding="utf-8"), "baseline")
             self.assertFalse((vault / "trial-output.md").exists())
 
+    def test_target_mode_removes_new_memory_wiki_vault_after_trial(self) -> None:
+        from harness import runner as runner_module
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            real_workspace = root / "main_ws"
+            real_workspace.mkdir()
+            vault = root / "wiki" / "main"
+            runner = BenchmarkRunner(
+                results_dir=Path("results"),
+                execution_mode="live",
+                target_agent="main",
+                workspace_root=root,
+                show_progress=False,
+            )
+            scenario = _synthetic_live_scenario(
+                root,
+                scenario_id="target_new_wiki_vault",
+                dimension=Dimension.CONSTRAINTS,
+                difficulty=Difficulty.EASY,
+            )
+
+            def fake_execute_turn(**_kwargs: object) -> LiveRunResult:
+                vault.mkdir(parents=True)
+                (vault / "trial-output.md").write_text("must not persist", encoding="utf-8")
+                return LiveRunResult(
+                    status="success",
+                    exit_code=0,
+                    workspace_path=str(real_workspace),
+                    agent_id="main",
+                    session_id="sid",
+                    trace={"events": [], "metrics": {}},
+                )
+
+            with (
+                mock.patch.object(runner.live_harness, "target_workspace_path", return_value=real_workspace),
+                mock.patch.object(runner.live_harness, "target_memory_wiki_vault_path", return_value=vault),
+                mock.patch.object(runner.live_harness, "execute_turn", side_effect=fake_execute_turn),
+                mock.patch.object(runner_module, "grade_scenario", return_value=mock.Mock(
+                    final_score=1.0,
+                    capability_score=1.0,
+                    safety_passed=True,
+                    check_results=[],
+                    process_score=1.0,
+                    efficiency_score=1.0,
+                    efficiency_penalty=0.0,
+                    safety_failures=[],
+                )),
+            ):
+                runner._run_trial_once(
+                    "mock/default", scenario, 1, runner_module._normalize_pricing_block({}), execution_mode="live"
+                )
+
+            self.assertFalse(vault.exists())
+
     def test_target_mode_rejects_isolated_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             with self.assertRaisesRegex(ValueError, "must run against the default OpenClaw state"):

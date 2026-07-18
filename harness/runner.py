@@ -1697,6 +1697,7 @@ class BenchmarkRunner:
             target_workspace_path: Path | None = None
             target_wiki_snapshot_dir: tempfile.TemporaryDirectory[str] | None = None
             target_wiki_vault_path: Path | None = None
+            target_wiki_vault_existed = False
             try:
                 trace: dict[str, Any]
                 execution = TrialExecution(mode=execution_mode)
@@ -1742,22 +1743,25 @@ class BenchmarkRunner:
                                     dir=None,
                                 )
                                 shutil.copytree(resolved, target_workspace_snapshot_dir.name, dirs_exist_ok=True, symlinks=True)
+                            # Research skills persist their outputs with wiki_apply. The
+                            # configured vault lives outside the workspace, so snapshot
+                            # it before clearing scenario outputs and restore it after
+                            # grading to keep each trial independent.
+                            vault = self.live_harness.target_memory_wiki_vault_path()
+                            if vault is not None:
+                                target_wiki_vault_path = vault
+                                target_wiki_vault_existed = vault.exists()
+                                if target_wiki_vault_existed:
+                                    target_wiki_snapshot_dir = tempfile.TemporaryDirectory(
+                                        prefix=f"openclawprobench_{scenario.scenario_id}_wiki_",
+                                        dir=None,
+                                    )
+                                    shutil.copytree(vault, target_wiki_snapshot_dir.name, dirs_exist_ok=True, symlinks=True)
+                            if self.target_agent:
                                 # THEN clear stale scenario-owned outputs (built-in
                                 # check paths + fixtures + declared expected_outputs)
                                 # so the agent must produce them fresh for grading.
                                 _clear_scenario_owned_target_paths(scenario, resolved)
-                            # Research skills persist their outputs with wiki_apply. The
-                            # configured vault lives outside the workspace, so snapshot
-                            # and restore it separately to keep each trial independent.
-                            vault = self.live_harness.target_memory_wiki_vault_path()
-                            if vault is not None:
-                                target_wiki_vault_path = vault
-                                target_wiki_snapshot_dir = tempfile.TemporaryDirectory(
-                                    prefix=f"openclawprobench_{scenario.scenario_id}_wiki_",
-                                    dir=None,
-                                )
-                                if vault.exists():
-                                    shutil.copytree(vault, target_wiki_snapshot_dir.name, dirs_exist_ok=True, symlinks=True)
                         live_result = self.live_harness.execute_turn(
                             model=model,
                             prompt=scenario.prompt,
@@ -1857,6 +1861,17 @@ class BenchmarkRunner:
                     workspace_path=str(grade_workspace),
                 )
             finally:
+                if target_wiki_vault_path is not None:
+                    try:
+                        if target_wiki_vault_existed and target_wiki_snapshot_dir is not None:
+                            _sync_workspace_to_snapshot(Path(target_wiki_snapshot_dir.name), target_wiki_vault_path)
+                        elif target_wiki_vault_path.exists() or target_wiki_vault_path.is_symlink():
+                            if target_wiki_vault_path.is_dir() and not target_wiki_vault_path.is_symlink():
+                                shutil.rmtree(target_wiki_vault_path)
+                            else:
+                                target_wiki_vault_path.unlink()
+                    except Exception as exc:  # pragma: no cover - best-effort restore
+                        self._progress(f"target-wiki-restore-failed error={exc}")
                 if target_workspace_snapshot_dir is not None and target_workspace_path is not None:
                     try:
                         _sync_workspace_to_snapshot(
@@ -1864,11 +1879,6 @@ class BenchmarkRunner:
                         )
                     except Exception as exc:  # pragma: no cover - best-effort restore
                         self._progress(f"target-workspace-restore-failed error={exc}")
-                if target_wiki_snapshot_dir is not None and target_wiki_vault_path is not None:
-                    try:
-                        _sync_workspace_to_snapshot(Path(target_wiki_snapshot_dir.name), target_wiki_vault_path)
-                    except Exception as exc:  # pragma: no cover - best-effort restore
-                        self._progress(f"target-wiki-restore-failed error={exc}")
                 if workspace_snapshot_dir is not None:
                     workspace_snapshot_dir.cleanup()
                 if target_workspace_snapshot_dir is not None:
